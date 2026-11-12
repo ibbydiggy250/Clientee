@@ -1,149 +1,213 @@
-# Post-Session Workflow Assistant — MVP Build Spec
+# TutorMe Platform Spec (incl. Clientee)
 
-## What this product is
+Nov 12, 2026 · Ibrahim
 
-An AI workflow assistant for tutors and coaches that turns a session recording into a polished follow-up package: a parent/client-ready summary email, a homework/action list with deadlines, progress notes with weak-topic tracking, and a next-session prep brief. It is not a meeting recorder or transcription tool — those are commodity inputs. The product's value is what happens after the recording: structured, editable, professional outputs that save the provider unpaid admin time, plus a compounding student/client history layer that makes every subsequent session smarter than the last.
+## Overview
 
-The MVP scope is intentionally narrow: one tutor uploads one recording for one student and gets one output package back, with profiles and history layered on top. No calendar sync, no email sending, no payment tiers, no Zoom/Meet API integration yet. Those are explicitly post-MVP.
+TutorMe is a tutoring agency run through one web portal: parents book, pay and message there; tutors teach and track progress there (Clientee); Ibrahim matches families and runs payouts there.
 
-## Target user (MVP)
+- **Agency, not marketplace.** Families hire through TutorMe. Tutors are contract-based and set their own hours and term length.
+- **Business terms.** Tutors keep 75% of each session. Pricing is about $60/hr standard and $80+/hr for AP and SAT.
 
-Independent tutors and academic/test-prep coaches working with recurring students. Single-tutor accounts only — no multi-user tutoring centers in this phase.
+The platform has four jobs:
 
-## Core user flow
+1. Keep the family relationship and all communication inside TutorMe. No phone numbers or emails are exchanged.
+2. Automate parent charges and tutor payouts.
+3. Give tutors free tools (Clientee, paid Zoom) that make staying worth it.
+4. Track student progress so parents see results, not just hours.
 
-1. Tutor logs in.
-2. Tutor selects an existing student or creates a new student profile.
-3. Tutor uploads a session recording (audio or video file).
-4. System transcribes the recording with speaker separation (tutor vs. student).
-5. System runs the transcript, plus that student's prior session history, through Claude to generate five outputs in one structured call.
-6. Tutor reviews and edits the outputs on a single review screen.
-7. Tutor saves the finalized session. It's added to that student's timeline and weak-topic history feeds forward into future sessions.
+## Users and roles
 
-## Tech stack
+Four roles, one login system. Each role sees only its own data.
 
-- **Frontend/hosting:** Next.js 14+ (App Router), deployed on Vercel. TypeScript throughout.
-- **Database + Auth + File Storage:** Supabase (Postgres, Supabase Auth, Supabase Storage).
-- **Transcription:** Groq API (`whisper-large-v3`) for speed and free-tier availability. Use AssemblyAI as a fallback/alternative if speaker diarization quality from Groq proves insufficient — AssemblyAI has built-in diarization on its free tier.
-- **AI analysis:** Anthropic API, Claude Sonnet model, single structured call per session returning JSON.
-- **Styling:** Tailwind CSS. Keep components plain — no heavy UI library needed for MVP.
-- **File handling:** Direct browser-to-Supabase-Storage upload via signed URLs (do not proxy large files through Vercel serverless functions — they have payload/duration limits).
+| Role | Who | Can do |
+| --- | --- | --- |
+| Account holder | A parent, or a learner who is 18+ | Pay, manage learners, see all sessions and threads for their learners |
+| Learner | The student being tutored; own login optional | Book, reschedule, join sessions, message their tutor |
+| Tutor | Contract tutor, invite only | Set availability, run sessions, write notes, message assigned learners only |
+| Admin | Ibrahim | Everything: match, reassign or take over sessions, refunds, payouts, read all threads |
 
-## Data model (Supabase / Postgres)
+An adult learner is their own account holder. One account holder can have several learners. One learner can have several tutors, one per subject.
 
-```sql
--- Tutors (extends Supabase auth.users)
-create table tutors (
-  id uuid primary key references auth.users(id),
-  name text not null,
-  email text not null,
-  created_at timestamptz default now()
-);
+## Accounts and access
 
--- Students belong to a tutor
-create table students (
-  id uuid primary key default gen_random_uuid(),
-  tutor_id uuid references tutors(id) not null,
-  name text not null,
-  subject text,
-  grade_level text,
-  goals text,
-  parent_email text,
-  created_at timestamptz default now()
-);
+Clients sign themselves up, while tutors get in only by invite. Access follows account status, and accounts are never deleted.
 
--- Sessions belong to a student
-create table sessions (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid references students(id) not null,
-  tutor_id uuid references tutors(id) not null,
-  status text not null default 'uploaded',
-    -- uploaded -> transcribing -> transcribed -> analyzing -> ready -> error
-  recording_storage_path text,
-  transcript text,
-  transcript_speakers jsonb,
-  ai_output jsonb,
-    -- { summary, parent_email, homework: [{task, deadline}], progress_notes,
-    --   weak_topics: [string], next_session_prep }
-  edited_output jsonb,
-    -- same shape as ai_output, holds tutor's edited version; null until tutor saves edits
-  error_message text,
-  session_date timestamptz default now(),
-  created_at timestamptz default now()
-);
+### Client sign-up
 
--- Row-level security: tutors only see their own students/sessions
-alter table students enable row level security;
-alter table sessions enable row level security;
+The sign-up screen asks "What best describes you?"
 
-create policy "tutors manage own students" on students
-  for all using (tutor_id = auth.uid());
-create policy "tutors manage own sessions" on sessions
-  for all using (tutor_id = auth.uid());
-```
+- **Learner**
+  1. Asks "Are you 18 or older?"
+  2. Yes → self-managed account: profile, payment, booking.
+  3. No → enter a parent's email. The parent gets an invite to link and add payment. The learner can build a profile but can't book until a parent links.
+- **Parent**
+  1. Add one or more learner profiles.
+  2. For each learner, either manage it yourself (no student login) or invite the learner to their own login. The parent keeps visibility either way.
 
-Notes for the build:
-- `ai_output` is the raw Claude response. `edited_output` is what the tutor has modified. Always display `edited_output` if it exists, otherwise `ai_output`. This avoids ever overwriting the AI's original output, which is useful for debugging prompt quality later.
-- Delete the file at `recording_storage_path` from Supabase Storage once `transcript` is successfully populated, to stay within the free storage tier. Keep only the text.
-- `weak_topics` should be an array of short tag strings (e.g. `"fractions"`, `"essay thesis statements"`) — this is what gets aggregated on the student timeline view and fed forward into future session prompts.
+Rules:
 
-## AI analysis call (the core of the product)
+- Links happen only through an email invite or code, and the other side must accept. No one can attach themselves to a learner by name.
+- Each learner has exactly one account holder.
+- New accounts start unmatched. Booking unlocks once admin assigns a tutor and a payment method is on file. Sign-up replaces the Google Form intake.
 
-One call per session. Input: the full transcript (with speaker labels), the student's profile (name, subject, grade, goals), and a compact summary of their prior session history (last 2-3 sessions' weak topics, homework completion status, and prep notes — summarized, not raw transcripts, to control token usage).
+### Tutor lifecycle
 
-System prompt should instruct Claude to act as an assistant to the tutor, not the student, and to return **only valid JSON**, no preamble, matching this exact shape:
+Tutors never see the sign-up screen. Admin sends an invite after the contract is signed.
 
-```json
-{
-  "summary": "string - 2-4 sentence overview of what was covered",
-  "parent_email": "string - full draft email, warm and professional tone, written as if from the tutor",
-  "homework": [
-    { "task": "string", "deadline": "string or null" }
-  ],
-  "progress_notes": "string - tutor-facing notes on how the student is doing",
-  "weak_topics": ["string", "string"],
-  "next_session_prep": "string - what the tutor should review or prepare before the next session"
-}
-```
+| Status | Reached when | Access |
+| --- | --- | --- |
+| `invited` | Admin sends the invite | Set password, complete Stripe onboarding |
+| `active` | Invite accepted | Clientee and assigned learners |
+| `offboarding` | `term_end` passes (scheduled job) | Read and finish notes for ~7 days, no new bookings |
+| `inactive` | Offboarding window ends | Signed out and blocked; account kept |
 
-Build in JSON validation on the response with a single retry if parsing fails (ask Claude to reformat as valid JSON). Log raw failures for prompt-debugging later.
+- **Extending a term:** admin edits `term_end`.
+- **Returning tutor:** admin re-invites and the same account goes back to `active`. Old learners stay hidden; only new assignments show.
+- **Data stays with TutorMe:** learner profiles and history pass to the next tutor. No bulk export.
 
-## Screens (MVP UI)
+### Access rules
 
-Keep the UI plain and functional. Use Tailwind defaults, no custom design system needed yet — clarity over polish at this stage.
+These are enforced in the database with Postgres row-level security on Neon, not just in the UI.
 
-**1. Login / signup** — Supabase Auth email/password. Minimal.
+- A tutor sees a learner's data only while the tutor is active (or offboarding, read-only) and the enrollment is active.
+- An account holder sees everything for their learners. A learner sees only their own data.
+- For minors, the account holder can read tutor–learner threads.
+- Admin sees everything.
 
-**2. Dashboard** — list of students (name, subject, last session date). Button to add a new student. Clicking a student goes to their profile page.
+### Minors and consent
 
-**3. Student profile page** — student details at top (name, subject, grade, goals — editable). Below that, a chronological timeline of past sessions (date, one-line summary, link to view full output). A rollup section showing the most frequently tagged weak topics across all sessions. "Upload new session" button.
+Under-18 learners need a linked parent for three reasons:
 
-**4. Upload session** — file picker/drag-and-drop for the recording. On submit, creates the session record and kicks off the transcription job. Redirects to a processing/status screen that polls until the AI output is ready (simple "Processing your session..." state is fine — no need for a progress bar with granular steps in MVP).
+- Minors' contracts are voidable.
+- COPPA requires parental consent for under-13s.
+- The NY Child Data Protection Act restricts collecting data from users known to be under 18 without consent.
 
-**5. Review and edit outputs** — the most important screen. Five sections, each in its own card, each independently editable as a textarea (homework list can be a simple repeatable task + deadline input pair):
-   - Session Summary
-   - Parent/Client Email (with a "Copy to clipboard" button)
-   - Homework / Action Items
-   - Progress Notes
-   - Next-Session Prep
+Asking for age at sign-up means TutorMe knows who is under 18, so the CDPA applies. The parent link is where consent is captured, including consent to recording. Have a lawyer review the consent flow and privacy policy before launch.
 
-A single "Save" button persists all edits to `edited_output`. No autosave needed for MVP.
+## Client portal
 
-## Build order for Claude Code
+Account holders and learners can do everything without ever needing the tutor's contact info.
 
-Build and verify in this order — do not move to the next step until the current one works end-to-end with real data:
+- **Intake.** Built into sign-up: learner, grade, subjects, goals, availability.
+- **Dashboard.** Upcoming sessions, a one-click Zoom join, and recent session summaries.
+- **Booking.** Pick from the assigned tutor's open slots. Supports recurring weekly sessions.
+- **Reschedule and cancel**, within the cancellation policy.
+- **Payments.** Saved card, automatic charges, receipts and history.
+- **Messages.** Threads with the tutor and with TutorMe.
+- **Progress (v1).** Reports built from Clientee session notes.
 
-1. Scaffold Next.js + Tailwind + Supabase client setup. Verify deploy to Vercel works with a blank page.
-2. Supabase Auth: signup/login pages, protected routes, `tutors` table sync on signup.
-3. `students` table + CRUD: dashboard list, create student form, student profile page (no sessions yet).
-4. File upload to Supabase Storage with signed URLs, `sessions` row creation, status field.
-5. Transcription pipeline: serverless function calls Groq/AssemblyAI, stores transcript + speaker labels, updates session status. Test with 3-5 real recordings before moving on.
-6. Claude analysis call: build the prompt, call the Anthropic API, validate and store JSON output. Test against the same 3-5 recordings and manually grade output quality before building the UI around it.
-7. Review/edit screen: render the five output sections, make them editable, wire up the save action.
-8. Student timeline: list past sessions on the profile page, aggregate weak topics.
-9. History feedback loop: pull prior session summaries into the AI call's context for returning students. Verify a second session for the same student visibly reflects the first.
-10. Error states and polish: failed transcription, malformed AI JSON, empty states, basic loading indicators.
+## Tutor workspace (Clientee)
 
-## Explicitly out of scope for MVP
+Clientee is the tutor side of the portal. It's free for TutorMe tutors; selling it standalone (~$35/mo) is deferred.
 
-Google Calendar reminders, Gmail/email sending integration, Zoom/Meet/Teams recording-link import, payment/subscription tiers, multi-tutor/team accounts, mobile app, real-time transcription during a live session.
+- **Tutor home.** Schedule, availability editor, contract term dates, earnings.
+- **Student profiles.** Baseline, goals, strengths and gaps, full session history. TutorMe owns them, so they carry over when a student changes tutors.
+- **Session log.** After each session the tutor adds notes, or the recording is pulled in (v1).
+- **AI next-session agenda.** Generated from the notes and profile, and checked against the tutor's own teaching framework.
+- **Progress reports (v1).** A periodic summary for parents, built from the logs.
+
+**AI pipeline (v1):** recording → transcription (Groq Whisper or AssemblyAI) → Claude API → agenda and profile update. Raw recordings are deleted after transcription to stay within free-tier storage. Expected AI cost is about $0.05–0.10 per session.
+
+## Admin console
+
+The admin console is where Ibrahim runs the agency; in v0, matching is manual.
+
+- **Intake queue.** New family requests, each matched to a tutor by hand.
+- **Tutor roster.** Subjects, availability, contract status, term end dates. Alerts 2–4 weeks before a term ends, so the handoff to the next tutor starts early.
+- **Session takeover.** Reassign any session to Ibrahim or another tutor. Pay follows whoever actually teaches.
+- **Money.** Charges, refunds, payout schedule, per-tutor earnings.
+- **Quality.** Read session notes and all message threads, review flagged messages, parent ratings (v1).
+- **Zoom seats.** Which tutor holds which license.
+
+## Scheduling and sessions
+
+Tutors publish availability; parents book into it; every booking gets a Zoom meeting on TutorMe's account.
+
+- **Availability.** Weekly hours plus contract start and end dates. No bookings past the term end.
+- **Booking.** One-off or recurring weekly. Default time zone is Eastern.
+- **Zoom.** The platform creates each meeting through the Zoom API under the tutor's TutorMe license. Pro costs $14.16/host/month billed annually, or $16.99 monthly. Every tutor who teaches at the same time as someone else needs their own seat.
+- **Session states.** Scheduled → completed, cancelled, or no-show. A completed session triggers the charge and goes into that week's payout.
+- **Takeover.** Admin swaps the teacher on a session. The new teacher gets the Zoom link and the payout.
+
+## Messaging and anti-bypass
+
+All contact runs through TutorMe accounts. The platform makes going direct hard; the contract is the backstop.
+
+- **Threads.** Learner ↔ tutor, account holder ↔ TutorMe, tutor ↔ TutorMe. For minors, the account holder can read learner threads. Admin can read every thread.
+- **No contact info.** Tutors never see a client's phone number or email. Notification emails come from TutorMe, and replies go back into the portal.
+- **Contact filter.** Messages containing phone numbers, emails, or social handles are held or flagged for admin review.
+- **Money only in the portal.** No outside payment methods.
+- **Known gap.** Zoom chat and in-session talk can't be monitored. The non-solicit and buyout clauses in the tutor contract cover this.
+
+## Payments and payouts
+
+Parents pay TutorMe. Stripe Connect (Express) splits each payment automatically and pays tutors weekly.
+
+1. Each tutor onboards as a Stripe Express connected account through Stripe's own hosted form, which covers ID and bank details.
+2. The parent's card is saved at intake and charged when a session is marked completed.
+3. The charge is split: 75% transfers to the teaching tutor's account; TutorMe keeps 25% as its platform fee.
+4. Tutor payouts are batched weekly, which keeps per-payout fees down.
+5. Refunds and disputes go through the admin console.
+
+| Fee | Amount |
+| --- | --- |
+| Card processing | 2.9% + 30¢ per charge |
+| Express account | $2 per tutor, only in months they get a payout |
+| Payout | 0.25% + 25¢ each |
+| 1099 e-filing | $1.49–2.99 per form |
+
+Fees from NerdWallet and DropDesk. On a $60 session: the tutor gets $45 and TutorMe gets $15. Stripe's card fee is about $2.04, leaving TutorMe about $12.96 if it absorbs the fee.
+
+## Data model
+
+Fourteen core tables in Lakebase Postgres on Neon. Row-level security limits tutors to their assigned learners and account holders to their own learners.
+
+| Table | Key fields |
+| --- | --- |
+| `profiles` | id, role (client, tutor, admin), name, email (linked to Neon Auth) |
+| `accounts` | id, owner_id, stripe_customer_id |
+| `learners` | id, account_id, profile_id (empty if no own login), name, grade, is_minor, goals, baseline |
+| `invites` | id, kind (tutor, parent, learner), email, code, account_id, learner_id, status, expires_at |
+| `tutors` | id, profile_id, status (invited, active, offboarding, inactive), subjects, stripe_account_id, zoom_user_id, term_start, term_end, split_pct (default 75) |
+| `availability` | tutor_id, weekday, start_time, end_time |
+| `enrollments` | id, learner_id, tutor_id, subject, tier, rate, status |
+| `sessions` | id, enrollment_id, taught_by, starts_at, ends_at, status, zoom_meeting_id, price |
+| `session_notes` | session_id, author_id, notes, transcript_ref, agenda_json |
+| `progress_entries` | learner_id, metric, value, recorded_at |
+| `threads` | id, learner_id, participant_ids |
+| `messages` | id, thread_id, sender_id, body, flagged |
+| `payments` | id, session_id, stripe_payment_intent_id, amount, fee, status |
+| `payouts` | id, tutor_id, period, amount, stripe_transfer_id |
+
+`sessions.taught_by` is set separately from the enrollment's tutor so takeovers pay the right person. `split_pct` per tutor leaves room for tenure raises later.
+
+## Tech stack and architecture
+
+One app and one database: Next.js (assumed) on Vercel with Neon (Lakebase Postgres and Neon Auth), calling Stripe, Zoom and AI services.
+
+Architecture: 3 views, 1 app, 4 services. Each view is a role inside the same app. Stripe and Zoom also call back into it through webhooks, such as payment succeeded or recording ready.
+
+## Scope
+
+v0 replaces only the manual work done for real families today; Clientee's AI arrives in v1.
+
+| Phase | Includes |
+| --- | --- |
+| v0 | Sign-up with parent–learner linking, tutor invites and term-based access, manual matching, tutor availability and booking, automatic Zoom links, messaging with contact filter, Stripe Connect charges and weekly payouts |
+| v1 | Clientee notes and student profiles, AI agendas, recording ingest and transcription, parent progress reports, cancellation policy rules, term-end handoff alerts, parent ratings |
+| Later | Tenure-based split raises, standalone Clientee at ~$35/mo, automated matching, outcomes analytics, mobile app |
+
+## Open questions
+
+These need a decision before or during v0.
+
+- Do parents pay per session after it happens, or buy prepaid packages?
+- Cancellation and no-show policy: what notice is required, and who absorbs the loss?
+- Do Stripe fees come out before or after the 75/25 split?
+- Lawyer review of the consent flow and privacy policy against the NY CDPA.
+- Do progress reports go straight to parents, or through admin review first?
+- Recording consent: how parents of minor students opt in to session recording before v1 ingest.
+- Takeover pay: put "whoever teaches gets paid" into the tutor contract.
+- Zoom: one seat per tutor, or a shared pool assigned by schedule?
+- Frontend framework: Next.js is assumed in Tech stack. Confirm.
