@@ -65,6 +65,7 @@ const people = {
   tutorActive: randomUUID(), // teaches learner A
   tutorUnmatched: randomUUID(), // active, but not matched with anyone
   tutorInactive: randomUUID(), // used to teach learner A, contract ended
+  minorSolo: randomUUID(), // a minor who signed up alone; no parent linked yet
 };
 
 const ids = {
@@ -76,6 +77,7 @@ const ids = {
   tutorUnmatched: randomUUID(),
   tutorInactive: randomUUID(),
   thread: randomUUID(),
+  learnerSolo: randomUUID(), // minorSolo's own learner row, with no account
 };
 
 async function buildWorld() {
@@ -86,6 +88,7 @@ async function buildWorld() {
     [people.tutorActive, "tutor", "Tutor Active"],
     [people.tutorUnmatched, "tutor", "Tutor Unmatched"],
     [people.tutorInactive, "tutor", "Tutor Inactive"],
+    [people.minorSolo, "client", "Minor Solo"],
   ];
   for (const [id, role, name] of profileRows) {
     await client.query(
@@ -102,6 +105,12 @@ async function buildWorld() {
     `insert into learners (id, account_id, name, is_minor) values
        ($1, $2, 'Learner A', true), ($3, $4, 'Learner B', false)`,
     [ids.learnerA, ids.accountA, ids.learnerB, ids.accountB],
+  );
+  // A minor who signed up before any parent linked: own login, no account.
+  await client.query(
+    `insert into learners (id, account_id, profile_id, name, is_minor)
+     values ($1, null, $2, 'Learner Solo', true)`,
+    [ids.learnerSolo, people.minorSolo],
   );
   await client.query(
     `insert into tutors (id, profile_id, status) values
@@ -140,7 +149,16 @@ async function runChecks() {
   check("Matched tutor sees their one learner", (await countVisible(people.tutorActive, "learners")) === 1);
   check("Unmatched tutor sees no learners", (await countVisible(people.tutorUnmatched, "learners")) === 0);
   check("Inactive tutor sees no learners", (await countVisible(people.tutorInactive, "learners")) === 0);
-  check("Admin sees every learner", (await countVisible(people.admin, "learners")) === 2);
+  check(
+    "Admin sees every learner",
+    // Counted by id, because a dev branch may also hold real test sign-ups.
+    await asPerson(people.admin, async () => {
+      const { rows } = await client.query("select count(*)::int as n from learners where id = any($1)", [
+        [ids.learnerA, ids.learnerB, ids.learnerSolo],
+      ]);
+      return rows[0].n === 3;
+    }),
+  );
   check("Nobody signed in sees nothing", (await countVisible(null, "learners")) === 0);
 
   console.log("\nContact info");
@@ -219,6 +237,24 @@ async function runChecks() {
       "insert into learners (account_id, name, is_minor) values ($1, 'New kid', true)",
       [ids.accountA],
     )),
+  );
+
+  console.log("\nMinors who signed up before a parent linked");
+  check("A solo minor sees only their own learner row", (await countVisible(people.minorSolo, "learners")) === 1);
+  check("A solo minor sees no account", (await countVisible(people.minorSolo, "accounts")) === 0);
+  check("Parent A cannot see the solo minor", (await countVisible(people.parentA, "learners")) === 1);
+  check(
+    "A solo minor cannot attach themselves to Parent A's account",
+    await isRefused(people.minorSolo, "update learners set account_id = $1 where id = $2", [
+      ids.accountA,
+      ids.learnerSolo,
+    ]),
+  );
+
+  console.log("\nParental consent");
+  check(
+    "Nobody can write consent directly (only invite acceptance can)",
+    await isRefused(people.parentA, "update learners set consent_given_at = now() where id = $1", [ids.learnerA]),
   );
 }
 

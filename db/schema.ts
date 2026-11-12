@@ -103,16 +103,16 @@ export const accounts = pgTable("accounts", {
 });
 
 /**
- * The student being tutored. Each learner belongs to exactly one account.
+ * The student being tutored. Each learner belongs to at most one account.
  * `profileId` is empty when the learner has no login of their own.
+ * `accountId` is empty only for a minor who signed up before a parent linked;
+ * they can't book until it is set.
  */
 export const learners = pgTable(
   "learners",
   {
     id: id(),
-    accountId: uuid("account_id")
-      .notNull()
-      .references(() => accounts.id),
+    accountId: uuid("account_id").references(() => accounts.id),
     profileId: uuid("profile_id")
       .unique()
       .references(() => profiles.id),
@@ -121,6 +121,10 @@ export const learners = pgTable(
     isMinor: boolean("is_minor").notNull(),
     goals: text("goals"),
     baseline: text("baseline"),
+    subjects: text("subjects").array().notNull().default([]),
+    // Parental consent, recorded when a parent accepts the link to a minor.
+    consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
+    consentGivenBy: uuid("consent_given_by").references(() => profiles.id),
     createdAt: createdAt(),
   },
   (table) => [index("learners_account_idx").on(table.accountId)],

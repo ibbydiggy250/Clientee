@@ -1,16 +1,52 @@
-/** Temporary holding page until the landing page is designed. */
-export default function HomePage() {
+/**
+ * Front door, for now: a short Margin Notes page with the two ways in.
+ * A full landing page is its own piece of work later.
+ */
+import Link from "next/link";
+
+import { PaperPage, PenCircle } from "@/components/paper/PaperPage";
+import styles from "@/components/paper/paper.module.css";
+import { getSignedInUser } from "@/lib/auth/current-user";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const user = await getSignedInUser();
+
   return (
-    <main className="relative grid min-h-dvh place-items-center overflow-hidden px-6">
-      <div aria-hidden className="glow pointer-events-none absolute -inset-24" />
-      <div className="relative text-center">
-        <p className="text-sm uppercase tracking-[0.4em] opacity-60">TutorMe</p>
-        <h1 className="mt-4 text-6xl font-semibold tracking-tight sm:text-8xl">
-          Something good
-          <br />
-          <span className="italic text-[var(--ember)]">is being built.</span>
+    <PaperPage
+      action={
+        user ? (
+          <Link className={styles.link} href="/home">Your home</Link>
+        ) : (
+          <Link className={styles.link} href="/sign-in">Sign in</Link>
+        )
+      }
+    >
+      <div className={styles.sheet}>
+        <p className={styles.note}>one-on-one tutoring, all in one place</p>
+        <h1 className={styles.title}>
+          Tutoring that{" "}
+          <span className={styles.circled}>
+            shows up.
+            <PenCircle />
+          </span>
         </h1>
+        <p className={`${styles.muted} ${styles.lede}`}>
+          TutorMe matches your family with a tutor, books the sessions, handles payment, and shows you the
+          progress — not just the hours. Standard subjects from $60 an hour.
+        </p>
+        <div className={styles.row}>
+          {user ? (
+            <Link className={styles.primary} href="/home">Go to your home</Link>
+          ) : (
+            <>
+              <Link className={styles.primary} href="/sign-up">Create an account</Link>
+              <Link className={styles.link} href="/sign-in">I already have one — sign in</Link>
+            </>
+          )}
+        </div>
       </div>
-    </main>
+    </PaperPage>
   );
 }

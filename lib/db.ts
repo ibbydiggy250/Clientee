@@ -47,6 +47,12 @@ export type UserTransaction = Parameters<
 >[0];
 
 /**
+ * Same shape, used for trusted server work inside `orm.transaction(...)`.
+ * A separate name so code reads clearly about which kind it holds.
+ */
+export type OwnerTransaction = UserTransaction;
+
+/**
  * Runs `work` in a transaction where the database only shows and changes rows
  * this user is allowed to touch (see db/migrations/0001_row_level_security.sql).
  *
