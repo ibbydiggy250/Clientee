@@ -21,7 +21,7 @@ Clientee is the tutor workspace inside **TutorMe**, a tutoring agency portal whe
 The codebase was wiped on Nov 12, 2026 to start over.
 
 - The old Next.js + Supabase scaffold and its unfinished Supabase/login work are saved on the local git branch `archive/pre-wipe` (commit `af63fe5`). That branch is not pushed. Restore a file with `git checkout archive/pre-wipe -- <path>`.
-- The wipe and the new Neon setup are committed (commit `c22a0b7`) and merged into `main`. `main` is ahead of `origin/main` and not pushed yet. Check `git status` before assuming what's committed or pushed.
+- The wipe and the new Neon setup landed on `main` in commit `c22a0b7`. For what's committed or pushed right now, run `git status`; don't rely on this file for that.
 
 ## Backend: Neon (not Supabase)
 
