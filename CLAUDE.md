@@ -45,7 +45,7 @@ The project uses **Neon** instead of Supabase. The spec has been updated to matc
 ## Claude Code setup
 
 - **Main model:** Opus 5.5, with **Fable 5.2 as the advisor** (set in `~/.claude/settings.json` as `"model": "opus"` and `"advisorModel": "fable"`).
-- **Advisor billing rule:** Fable is free on the Pro plan only until **Nov 17, 2026**. If using the advisor (or Fable in any form) would ever cost tokens outside the Pro plan, such as usage credits or extra usage, **stop and tell the user before calling it at all.** If you can't tell whether it would, don't call it; ask first.
+- **Advisor rule:** Stop using the Fable advisor after **November 17, 2026 at 3:00 AM Eastern**.
 - A one-time scheduled task, **"Turn off Fable advisor"**, removes `advisorModel` from the user settings on **Nov 17, 2026 at 3:00 AM Eastern**. It only runs while the Claude app is open. After that date, chats that were already open still need `/advisor off`.
 - **Installed skills** (in `~/.claude/skills`, available in every project) come from three repos: `mattpocock/skills`, `leonxlnx/taste-skill`, and `emilkowalski/skills`. Clashing names were renamed:
   - `matt-prototype` and `emil-prototype` (both repos had a `prototype`)

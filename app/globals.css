@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* Temporary holding-page styles. The real design system comes next,
+   once a visual direction is approved. */
+:root {
+  --ink: #f4efe6;
+  --night: #0d0b14;
+  --ember: #ff6b3d;
+  --tide: #5b8cff;
+}
+
+body {
+  background: var(--night);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.glow {
+  background:
+    radial-gradient(40rem 28rem at 15% 20%, color-mix(in oklab, var(--ember) 35%, transparent), transparent 70%),
+    radial-gradient(36rem 30rem at 85% 75%, color-mix(in oklab, var(--tide) 30%, transparent), transparent 70%);
+  animation: drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  to {
+    transform: translate3d(0, -2rem, 0) scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow {
+    animation: none;
+  }
+}
