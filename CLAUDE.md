@@ -13,7 +13,7 @@
 Clientee is the tutor workspace inside **TutorMe**, a tutoring agency portal where parents book, pay and message, tutors teach and track progress, and the admin (Ibrahim) matches families and runs payouts.
 
 - The full plan is in [mvp-spec.md](mvp-spec.md). Read it before planning or building any feature.
-- v0 scope: sign-up with parent–learner linking, tutor invites, manual matching, availability and booking, Zoom links, messaging with a contact filter, Stripe Connect charges and weekly payouts. Clientee's AI features come in v1.
+- v0 scope: sign-up with parent–learner linking, tutor invites, rule-based matching with admin approval, availability and booking, Zoom links, messaging with a contact filter, Stripe Connect charges and weekly payouts. Clientee's AI features come in v1.
 - The spec's "Open questions" section is still undecided. Ask before assuming an answer to any of them.
 
 ## Fresh start

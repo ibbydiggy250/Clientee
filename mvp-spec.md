@@ -85,6 +85,51 @@ Under-18 learners need a linked parent for three reasons:
 
 Asking for age at sign-up means TutorMe knows who is under 18, so the CDPA applies. The parent link is where consent is captured, including consent to recording. Have a lawyer review the consent flow and privacy policy before launch.
 
+## Matching
+
+TutorMe uses managed matching: the system recommends a tutor and the client confirms. Clients never browse the full roster.
+
+**Every request ends in a weekly match or loops back to the next tutor:**
+
+Client intake → Suggest next match → Client requests tutor → Tutor accepts within 48h → Admin approves → Trial session → Weekly sessions
+
+A declined request, a timeout, an "ask for another", or a trial that isn't a fit all send the client to the next-best match.
+
+### How a match is made
+
+1. Client completes intake: subject, level, goals, availability, preferences.
+2. System shows one recommended tutor plus 1–2 alternates. The client requests one or asks for another.
+3. Tutor has 48 hours to accept. If they decline or don't respond, the request moves to the next match automatically.
+4. Admin approves. Messaging opens and a trial session is suggested.
+5. A good trial becomes weekly sessions. Switching tutors is always free.
+
+Admin approval is a per-org setting. It starts manual, then moves to a coordinator, then to auto-approve for trusted tutors.
+
+### Scoring
+
+Hard filters come first. A tutor must teach the subject and level, overlap the client's availability, be active, and be under their `max_learners` cap. Qualified tutors are then ranked:
+
+| Factor | Effect on rank |
+| --- | --- |
+| Fit with client preferences | Main score |
+| Open capacity | Boost for tutors with free slots |
+| New tutor | Boost for their first ~3 matches |
+| Recently matched | Penalty, so matches rotate |
+| Ratings | Count only after ~5 sessions |
+| Trial-to-weekly rate | A low rate lowers future matches |
+
+Tutors are told these rules when they join.
+
+### Tutor profiles
+
+- **Shown to clients:** first name and last initial, school and year, subjects and levels, bio, ratings, optional intro video.
+- **Private:** age, full name, contact info.
+- Tutors under 18 stay out of the matching pool for now.
+
+### Admin dashboard
+
+Matches per tutor, trial-to-weekly rate, open capacity per tutor, and requests close to timing out. This shows quickly when matches are piling onto a few tutors.
+
 ## Client portal
 
 Account holders and learners can do everything without ever needing the tutor's contact info.
@@ -111,9 +156,9 @@ Clientee is the tutor side of the portal. It's free for TutorMe tutors; selling 
 
 ## Admin console
 
-The admin console is where Ibrahim runs the agency; in v0, matching is manual.
+The admin console is where Ibrahim runs the agency; matching follows the rules in Matching, with Ibrahim approving each match.
 
-- **Intake queue.** New family requests, each matched to a tutor by hand.
+- **Intake queue.** Open match requests waiting on tutor acceptance or admin approval.
 - **Tutor roster.** Subjects, availability, contract status, term end dates. Alerts 2–4 weeks before a term ends, so the handoff to the next tutor starts early.
 - **Session takeover.** Reassign any session to Ibrahim or another tutor. Pay follows whoever actually teaches.
 - **Money.** Charges, refunds, payout schedule, per-tutor earnings.
@@ -161,18 +206,19 @@ Fees from NerdWallet and DropDesk. On a $60 session: the tutor gets $45 and Tuto
 
 ## Data model
 
-Fourteen core tables in Lakebase Postgres on Neon. Row-level security limits tutors to their assigned learners and account holders to their own learners.
+Fifteen core tables in Lakebase Postgres on Neon. Row-level security limits tutors to their assigned learners and account holders to their own learners.
 
 | Table | Key fields |
 | --- | --- |
 | `profiles` | id, role (client, tutor, admin), name, email (linked to Neon Auth) |
 | `accounts` | id, owner_id, stripe_customer_id |
-| `learners` | id, account_id, profile_id (empty if no own login), name, grade, is_minor, goals, baseline |
+| `learners` | id, account_id, profile_id (empty if no own login), name, grade, is_minor, goals, baseline, preferences |
 | `invites` | id, kind (tutor, parent, learner), email, code, account_id, learner_id, status, expires_at |
-| `tutors` | id, profile_id, status (invited, active, offboarding, inactive), subjects, stripe_account_id, zoom_user_id, term_start, term_end, split_pct (default 75) |
+| `tutors` | id, profile_id, status (invited, active, offboarding, inactive), subjects, levels, school_year, bio, intro_video_url, max_learners, stripe_account_id, zoom_user_id, term_start, term_end, split_pct (default 75) |
 | `availability` | tutor_id, weekday, start_time, end_time |
+| `match_requests` | id, learner_id, tutor_id, score, status (suggested, requested, accepted, approved, declined, expired), expires_at |
 | `enrollments` | id, learner_id, tutor_id, subject, tier, rate, status |
-| `sessions` | id, enrollment_id, taught_by, starts_at, ends_at, status, zoom_meeting_id, price |
+| `sessions` | id, enrollment_id, taught_by, starts_at, ends_at, status (incl. trial), zoom_meeting_id, price |
 | `session_notes` | session_id, author_id, notes, transcript_ref, agenda_json |
 | `progress_entries` | learner_id, metric, value, recorded_at |
 | `threads` | id, learner_id, participant_ids |
@@ -194,7 +240,7 @@ v0 replaces only the manual work done for real families today; Clientee's AI arr
 
 | Phase | Includes |
 | --- | --- |
-| v0 | Sign-up with parent–learner linking, tutor invites and term-based access, manual matching, tutor availability and booking, automatic Zoom links, messaging with contact filter, Stripe Connect charges and weekly payouts |
+| v0 | Sign-up with parent–learner linking, tutor invites and term-based access, rule-based matching with admin approval, tutor availability and booking, automatic Zoom links, messaging with contact filter, Stripe Connect charges and weekly payouts |
 | v1 | Clientee notes and student profiles, AI agendas, recording ingest and transcription, parent progress reports, cancellation policy rules, term-end handoff alerts, parent ratings |
 | Later | Tenure-based split raises, standalone Clientee at ~$35/mo, automated matching, outcomes analytics, mobile app |
 
