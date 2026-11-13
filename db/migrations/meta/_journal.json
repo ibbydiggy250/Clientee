@@ -29,6 +29,20 @@
       "when": 1794498940809,
       "tag": "0003_learner_signup_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794501419309,
+      "tag": "0004_admin_tutor_invites",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794501426664,
+      "tag": "0005_admin_access_rules",
+      "breakpoints": true
     }
   ]
 }

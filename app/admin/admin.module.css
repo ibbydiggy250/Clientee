@@ -1,0 +1,189 @@
+/*
+ * Admin console — "the teacher's desk".
+ * Same Margin Notes paper, plus a red ADMIN stamp, notebook tabs,
+ * sticky-note counts and gradebook-style ledger rows.
+ * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
+ */
+
+/* ---------- Header: the rubber stamp and the tabs ---------- */
+
+.stamp {
+  display: inline-block;
+  padding: 0.25rem 0.7rem 0.2rem;
+  border: 3px double var(--pen);
+  border-radius: 4px;
+  color: var(--pen);
+  font-family: var(--font-display), serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  rotate: -6deg;
+  opacity: 0.9;
+  animation: thump 0.45s 0.1s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes thump {
+  from { opacity: 0; transform: scale(1.8); }
+}
+
+.tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0 clamp(1rem, 8vw, 7rem);
+  border-bottom: 2px solid var(--ink);
+}
+.tab {
+  position: relative;
+  top: 2px;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.25rem 0.55rem;
+  border: 2px solid var(--ink);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: rgb(27 35 64 / 0.06);
+  font-weight: 600;
+  transition: background 0.2s, transform 0.2s;
+}
+.tab:hover { background: rgb(27 35 64 / 0.12); transform: translateY(-2px); }
+.tab[aria-current="page"] {
+  background: var(--paper);
+  border-bottom: 2px solid var(--paper);
+  transform: none;
+}
+
+/* ---------- Sticky-note counts ---------- */
+
+.notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1.25rem;
+}
+.sticky {
+  display: grid;
+  gap: 0.15rem;
+  padding: 1.1rem 1.2rem 1.3rem;
+  background: #fde88a;
+  box-shadow: 0 10px 18px -12px rgb(27 35 64 / 0.55);
+  clip-path: polygon(0 0, 100% 0, 100% 88%, 92% 100%, 0 100%);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sticky:nth-child(2) { background: #ffc9b8; }
+.sticky:nth-child(3) { background: #c8ecd8; }
+.sticky:nth-child(4) { background: #cfdcff; }
+.sticky:hover { transform: translateY(-3px) rotate(-1deg); }
+.stickyNumber {
+  font-family: var(--font-display), serif;
+  font-size: 2.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.stickyLabel { font-family: var(--font-hand), cursive; font-size: 1.35rem; line-height: 1.1; }
+
+/* ---------- Ledger rows (a gradebook, not a spreadsheet) ---------- */
+
+.ledger { display: grid; }
+.ledgerHead,
+.ledgerRow {
+  display: grid;
+  grid-template-columns: var(--columns);
+  gap: 1rem;
+  align-items: start;
+  padding: 0.9rem 0.25rem;
+}
+.ledgerHead {
+  border-bottom: 2px solid var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.ledgerRow {
+  border-bottom: 1px solid rgb(27 35 64 / 0.15);
+  transition: background 0.2s;
+}
+.ledgerRow:hover { background: rgb(255 253 248 / 0.7); }
+@media (max-width: 760px) {
+  .ledgerHead { display: none; }
+  .ledgerRow { grid-template-columns: 1fr; gap: 0.4rem; }
+}
+
+.name {
+  font-family: var(--font-display), serif;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.small { font-size: 0.875rem; color: var(--ink-soft); }
+.money { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* Handwritten warning in the margin, e.g. "term ends in 9 days" */
+.margin {
+  font-family: var(--font-hand), cursive;
+  color: var(--pen);
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+/* A <details> row that opens a form underneath */
+.drawer > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+.drawer > summary::-webkit-details-marker { display: none; }
+.drawer > summary::after { content: "→"; transition: transform 0.25s; }
+.drawer[open] > summary::after { transform: rotate(90deg); }
+.drawerBody {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding: 1.25rem;
+  border-left: 3px solid var(--pen);
+  background: rgb(255 253 248 / 0.8);
+  animation: unfold 0.3s ease-out both;
+}
+@keyframes unfold {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+
+/* Two or more short fields side by side */
+.inline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem 1.25rem;
+}
+.select {
+  min-height: 3rem;
+  padding: 0.5rem 0.25rem;
+  border: none;
+  border-bottom: 2px solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.select:focus { outline: none; border-color: var(--pen); }
+
+.statusChip {
+  justify-self: start;
+  padding: 0.15rem 0.55rem;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.status_invited { color: #8a6a00; }
+.status_active { color: #2f7d4f; }
+.status_offboarding { color: var(--pen); }
+.status_inactive { color: rgb(27 35 64 / 0.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp, .drawerBody { animation: none; }
+}

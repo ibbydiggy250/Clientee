@@ -307,6 +307,34 @@ textarea.input { min-height: 6rem; resize: vertical; line-height: 2.2rem; }
   font-weight: 500;
 }
 
+/* ---------- The staff entrance: a rubber stamp in the page corner ---------- */
+
+.staffDoor {
+  position: fixed;
+  right: clamp(1rem, 3vw, 2.5rem);
+  bottom: clamp(1rem, 3vw, 2.5rem);
+  display: grid;
+  place-items: center;
+  width: 6.5rem;
+  height: 6.5rem;
+  border: 3px double var(--pen);
+  border-radius: 50%;
+  color: var(--pen);
+  background: rgb(246 240 228 / 0.85);
+  font-family: var(--font-display), serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+  rotate: -12deg;
+  transition: rotate 0.35s cubic-bezier(0.3, 1.6, 0.5, 1), transform 0.2s, background 0.2s;
+}
+.staffDoor:hover { rotate: 0deg; transform: scale(1.06); background: var(--card); }
+.staffDoor:active { transform: scale(0.94); }
+.staffDoor:focus-visible { outline: 2px dashed var(--pen); outline-offset: 6px; }
+
 /* ---------- Status stamps ---------- */
 
 .stamp {

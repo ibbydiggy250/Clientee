@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:check-rls": "tsx scripts/check-rls.ts"
+    "db:check-rls": "tsx scripts/check-rls.ts",
+    "db:check-admin": "tsx scripts/check-admin.ts"
   },
   "dependencies": {
     "@neon/auth": "^0.8.2",

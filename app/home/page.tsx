@@ -1,12 +1,13 @@
 /**
- * Home for a signed-in client (parent or learner).
+ * Home for a signed-in client (parent or learner). Tutors see TutorHome and
+ * admins see a link to the console instead.
  *
  * Everything here is read through `withUser`, so the database's row-level
  * security decides what this person sees: their own learners, their account,
  * and the invites they sent.
  */
 import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
-import { headers } from "next/headers";
+import Link from "next/link";
 
 import { PaperPage, PenCircle } from "@/components/paper/PaperPage";
 import styles from "@/components/paper/paper.module.css";
@@ -14,24 +15,40 @@ import { accounts, enrollments, invites, learners } from "@/db/schema";
 import { requireProfile } from "@/lib/auth/current-user";
 import { withUser } from "@/lib/db";
 import { invitePath } from "@/lib/invites";
+import { siteOrigin } from "@/lib/site-origin";
 
 import { AddLearnerForm } from "./AddLearnerForm";
 import { CopyLink } from "./CopyLink";
 import { InviteLearnerForm } from "./InviteLearnerForm";
 import { SignOutButton } from "./SignOutButton";
+import { TutorHome } from "./TutorHome";
 
 export const dynamic = "force-dynamic";
 
-/** "https://tutorme.example" — used to turn invite paths into full links. */
-async function siteOrigin(): Promise<string> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${protocol}://${host}`;
-}
-
 export default async function HomePage() {
   const { user, profile } = await requireProfile();
+
+  // Tutors and staff get their own home; everything below is for families.
+  if (profile.role === "tutor") {
+    return (
+      <PaperPage action={<SignOutButton />}>
+        <TutorHome profile={profile} />
+      </PaperPage>
+    );
+  }
+  if (profile.role === "admin") {
+    return (
+      <PaperPage action={<SignOutButton />}>
+        <div className={`${styles.sheet} ${styles.narrow}`}>
+          <p className={styles.note}>hi {profile.name.split(" ")[0].toLowerCase()} —</p>
+          <h1 className={`${styles.title} ${styles.titleSmall}`}>You&apos;re signed in as staff.</h1>
+          <Link className={styles.primary} href="/admin">
+            Open the admin console
+          </Link>
+        </div>
+      </PaperPage>
+    );
+  }
 
   const { myLearners, matchedLearnerIds, ownsAccount, sentInvites } = await withUser(profile.id, async (tx) => {
     const myLearners = await tx.select().from(learners).orderBy(learners.createdAt);

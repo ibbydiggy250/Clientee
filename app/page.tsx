@@ -47,6 +47,14 @@ export default async function HomePage() {
           )}
         </div>
       </div>
+
+      {/* The staff entrance: still goes through normal sign-in, then the admin console. */}
+      <Link className={styles.staffDoor} href="/sign-in?next=/admin" aria-label="Staff entrance: admin console">
+        TutorMe
+        <br />★ Staff ★
+        <br />
+        entrance
+      </Link>
     </PaperPage>
   );
 }

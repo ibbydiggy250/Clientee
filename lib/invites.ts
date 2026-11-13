@@ -4,7 +4,8 @@
  *   parent  — a minor asks a parent to link up. Accepting gives the learner an
  *             account and records the parent's consent.
  *   learner — a parent gives one of their learners a login of their own.
- *   tutor   — admin invites a tutor (built in the admin slice, not here yet).
+ *   tutor   — admin invites a tutor. Accepting gives the person a tutor
+ *             profile and turns their "invited" tutor row "active".
  *
  * There is no email sender yet, so the app shows the invite link on screen
  * for the inviter to pass on. Only the person whose email the invite was
@@ -17,7 +18,7 @@ import { randomBytes } from "node:crypto";
 
 import { and, eq, gt, sql } from "drizzle-orm";
 
-import { invites, learners } from "@/db/schema";
+import { invites, learners, profiles, tutors } from "@/db/schema";
 import { ensureAccount, ensureClientProfile } from "@/lib/accounts";
 import type { SignedInUser } from "@/lib/auth/current-user";
 import { orm, type OwnerTransaction } from "@/lib/db";
@@ -36,11 +37,14 @@ export function invitePath(code: string): string {
 }
 
 type NewInvite = {
-  kind: "parent" | "learner";
+  kind: "parent" | "learner" | "tutor";
   email: string;
-  learnerId: string;
   createdBy: string;
+  /** Set for parent and learner invites. */
+  learnerId?: string;
   accountId?: string;
+  /** Set for tutor invites. */
+  tutorId?: string;
 };
 
 /** Saves a pending invite and returns its code. */
@@ -51,8 +55,9 @@ export async function createInvite(tx: OwnerTransaction, invite: NewInvite): Pro
     kind: invite.kind,
     email: invite.email.toLowerCase(),
     code,
-    learnerId: invite.learnerId,
+    learnerId: invite.learnerId ?? null,
     accountId: invite.accountId ?? null,
+    tutorId: invite.tutorId ?? null,
     createdBy: invite.createdBy,
     expiresAt,
   });
@@ -127,9 +132,12 @@ export async function acceptInvite(user: SignedInUser, code: string): Promise<vo
     if (!invite) {
       throw new InviteError(await whyInviteCannotBeAccepted(user, code));
     }
-    if (invite.kind === "tutor" || !invite.learnerId) {
-      throw new InviteError("Tutor invites aren't open yet.");
+    if (invite.kind === "tutor") {
+      if (!invite.tutorId) throw new InviteError("This tutor invite is incomplete. Ask TutorMe for a new one.");
+      await linkTutor(tx, user, invite.tutorId);
+      return;
     }
+    if (!invite.learnerId) throw new InviteError("This invite is incomplete. Ask for a new one.");
 
     await ensureClientProfile(tx, user);
 
@@ -139,6 +147,32 @@ export async function acceptInvite(user: SignedInUser, code: string): Promise<vo
       await linkLearnerLogin(tx, user, invite.learnerId);
     }
   });
+}
+
+/**
+ * Tutor accepts: they get a tutor profile, and their tutor row (made by admin
+ * with status "invited") is attached to them and becomes "active".
+ * A login that already belongs to a family or staff member is refused,
+ * so one person never ends up with mixed roles.
+ */
+async function linkTutor(tx: OwnerTransaction, user: SignedInUser, tutorId: string) {
+  const existing = await tx.query.profiles.findFirst({ where: (table, { eq }) => eq(table.id, user.id) });
+  if (existing && existing.role !== "tutor") {
+    throw new InviteError("This login is already a family or staff account. Tutors need their own email.");
+  }
+  if (!existing) {
+    await tx.insert(profiles).values({ id: user.id, role: "tutor", name: user.name, email: user.email.toLowerCase() });
+  }
+
+  const activated = await tx
+    .update(tutors)
+    .set({ profileId: user.id, status: "active" })
+    .where(and(eq(tutors.id, tutorId), eq(tutors.status, "invited"), sql`${tutors.profileId} is null`))
+    .returning({ id: tutors.id });
+
+  if (activated.length === 0) {
+    throw new InviteError("This tutor invite has already been used.");
+  }
 }
 
 /** Parent accepts: the minor joins the parent's account, consent is recorded. */

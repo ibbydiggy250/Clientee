@@ -66,6 +66,7 @@ const people = {
   tutorUnmatched: randomUUID(), // active, but not matched with anyone
   tutorInactive: randomUUID(), // used to teach learner A, contract ended
   minorSolo: randomUUID(), // a minor who signed up alone; no parent linked yet
+  tutorExpired: randomUUID(), // still "active" in the table, but term ended 10 days ago
 };
 
 const ids = {
@@ -78,6 +79,7 @@ const ids = {
   tutorInactive: randomUUID(),
   thread: randomUUID(),
   learnerSolo: randomUUID(), // minorSolo's own learner row, with no account
+  tutorExpired: randomUUID(),
 };
 
 async function buildWorld() {
@@ -89,6 +91,7 @@ async function buildWorld() {
     [people.tutorUnmatched, "tutor", "Tutor Unmatched"],
     [people.tutorInactive, "tutor", "Tutor Inactive"],
     [people.minorSolo, "client", "Minor Solo"],
+    [people.tutorExpired, "tutor", "Tutor Expired"],
   ];
   for (const [id, role, name] of profileRows) {
     await client.query(
@@ -125,6 +128,16 @@ async function buildWorld() {
     `insert into enrollments (learner_id, tutor_id, subject, rate_cents) values
        ($1, $2, 'Math', 6000), ($1, $3, 'Physics', 6000)`,
     [ids.learnerA, ids.tutorActive, ids.tutorInactive],
+  );
+  // A tutor whose contract ended 10 days ago, still matched with learner B.
+  await client.query(
+    `insert into tutors (id, profile_id, status, term_start, term_end)
+     values ($1, $2, 'active', current_date - 100, current_date - 10)`,
+    [ids.tutorExpired, people.tutorExpired],
+  );
+  await client.query(
+    "insert into enrollments (learner_id, tutor_id, subject, rate_cents) values ($1, $2, 'Spanish', 6000)",
+    [ids.learnerB, ids.tutorExpired],
   );
   // Learner A has no login, so the tutor is the only participant;
   // parent A can still read it because learner A is a minor.
@@ -249,6 +262,32 @@ async function runChecks() {
       ids.accountA,
       ids.learnerSolo,
     ]),
+  );
+
+  console.log("\nTutor contracts and tutor data");
+  check(
+    "A tutor whose contract ended over 7 days ago sees no learners",
+    (await countVisible(people.tutorExpired, "learners")) === 0,
+  );
+  check(
+    "A family can read their tutor's subjects and status",
+    !(await isRefused(people.parentA, "select subjects, status from tutors where id = $1", [ids.tutorActive])),
+  );
+  check(
+    "A family cannot read their tutor's pay split",
+    await isRefused(people.parentA, "select split_pct from tutors where id = $1", [ids.tutorActive]),
+  );
+  check(
+    "A family cannot read their tutor's Stripe account",
+    await isRefused(people.parentA, "select stripe_account_id from tutors where id = $1", [ids.tutorActive]),
+  );
+  check(
+    "Nobody but admin can create a match",
+    await isRefused(
+      people.parentA,
+      "insert into enrollments (learner_id, tutor_id, subject, rate_cents) values ($1, $2, 'Art', 100)",
+      [ids.learnerA, ids.tutorActive],
+    ),
   );
 
   console.log("\nParental consent");

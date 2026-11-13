@@ -22,20 +22,25 @@ export default async function SignInPage({
   const inviteCode = next?.match(/^\/invite\/([\w-]+)$/)?.[1];
   const signUpHref = inviteCode ? `/sign-up?invite=${inviteCode}` : "/sign-up";
 
+  // Came through the "Staff entrance" stamp? Same sign-in, staff wording.
+  const isStaffEntrance = next === "/admin" || next?.startsWith("/admin/");
+
   return (
     <PaperPage
       action={
-        <Link className={styles.link} href={signUpHref}>
-          Create an account
-        </Link>
+        isStaffEntrance ? undefined : (
+          <Link className={styles.link} href={signUpHref}>
+            Create an account
+          </Link>
+        )
       }
     >
       <div className={`${styles.sheet} ${styles.narrow}`}>
-        <p className={styles.note}>good to see you again</p>
+        <p className={styles.note}>{isStaffEntrance ? "staff entrance — admins only" : "good to see you again"}</p>
         <h1 className={`${styles.title} ${styles.titleSmall}`}>
-          Welcome{" "}
+          {isStaffEntrance ? "Staff" : "Welcome"}{" "}
           <span className={styles.circled}>
-            back.
+            {isStaffEntrance ? "sign-in." : "back."}
             <PenCircle />
           </span>
         </h1>

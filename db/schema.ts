@@ -8,6 +8,7 @@
  *
  * Money is stored in cents (integers) to avoid rounding errors.
  */
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -144,6 +145,8 @@ export const invites = pgTable(
     code: text("code").notNull().unique(),
     accountId: uuid("account_id").references(() => accounts.id),
     learnerId: uuid("learner_id").references(() => learners.id),
+    // For tutor invites: the tutor row (status "invited") this invite activates.
+    tutorId: uuid("tutor_id").references(() => tutors.id),
     createdBy: uuid("created_by").references(() => profiles.id),
     status: inviteStatus("status").notNull().default("pending"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -156,10 +159,15 @@ export const invites = pgTable(
 // Tutors
 // ---------------------------------------------------------------------------
 
+/**
+ * A contract tutor. Admin creates the row when sending the invite
+ * (status "invited", no login yet); accepting the invite fills `profileId`
+ * and sets status "active". The invited email lives on the invite, not here,
+ * because matched families can read parts of this row.
+ */
 export const tutors = pgTable("tutors", {
   id: id(),
   profileId: uuid("profile_id")
-    .notNull()
     .unique()
     .references(() => profiles.id),
   status: tutorStatus("status").notNull().default("invited"),
@@ -214,6 +222,11 @@ export const enrollments = pgTable(
   (table) => [
     index("enrollments_learner_idx").on(table.learnerId),
     index("enrollments_tutor_idx").on(table.tutorId),
+    // One tutor per subject per learner (spec): at most one ACTIVE match
+    // for the same learner and subject, whatever the capitalisation.
+    uniqueIndex("enrollments_one_active_per_subject")
+      .on(table.learnerId, sql`lower(${table.subject})`)
+      .where(sql`status = 'active'`),
   ],
 );
 

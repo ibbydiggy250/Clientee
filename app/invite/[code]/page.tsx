@@ -40,11 +40,12 @@ function wording(invite: InviteSummary) {
       };
     default:
       return {
-        titleStart: "Tutor",
-        titleCircled: "invite.",
-        detail: "Tutor invites open soon.",
+        titleStart: "Teach with",
+        titleCircled: "TutorMe.",
+        detail:
+          "TutorMe invited you to join as a tutor. Accepting opens Clientee, your tutor workspace, where you'll see the learners you're matched with.",
         consent: null,
-        button: "Accept",
+        button: "Join as a tutor",
       };
   }
 }
