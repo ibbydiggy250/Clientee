@@ -9,7 +9,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check-rls": "tsx scripts/check-rls.ts",
-    "db:check-admin": "tsx scripts/check-admin.ts"
+    "db:check-admin": "tsx scripts/check-admin.ts",
+    "db:check-booking": "tsx scripts/check-booking.ts"
   },
   "dependencies": {
     "@neon/auth": "^0.8.2",

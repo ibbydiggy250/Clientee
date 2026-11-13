@@ -11,8 +11,9 @@ import Link from "next/link";
 
 import { PaperPage, PenCircle } from "@/components/paper/PaperPage";
 import styles from "@/components/paper/paper.module.css";
-import { accounts, enrollments, invites, learners } from "@/db/schema";
+import { accounts, enrollments, invites, learners, profiles, tutors } from "@/db/schema";
 import { requireProfile } from "@/lib/auth/current-user";
+import { listVisibleSessions } from "@/lib/booking";
 import { withUser } from "@/lib/db";
 import { invitePath } from "@/lib/invites";
 import { siteOrigin } from "@/lib/site-origin";
@@ -20,12 +21,17 @@ import { siteOrigin } from "@/lib/site-origin";
 import { AddLearnerForm } from "./AddLearnerForm";
 import { CopyLink } from "./CopyLink";
 import { InviteLearnerForm } from "./InviteLearnerForm";
+import { SessionList } from "../sessions/SessionList";
 import { SignOutButton } from "./SignOutButton";
 import { TutorHome } from "./TutorHome";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ booked?: string; skipped?: string; moved?: string }>;
+}) {
   const { user, profile } = await requireProfile();
 
   // Tutors and staff get their own home; everything below is for families.
@@ -50,7 +56,7 @@ export default async function HomePage() {
     );
   }
 
-  const { myLearners, matchedLearnerIds, ownsAccount, sentInvites } = await withUser(profile.id, async (tx) => {
+  const { myLearners, matchedLearnerIds, ownsAccount, sentInvites, bookableMatches } = await withUser(profile.id, async (tx) => {
     const myLearners = await tx.select().from(learners).orderBy(learners.createdAt);
 
     const learnerIds = myLearners.map((learner) => learner.id);
@@ -59,6 +65,21 @@ export default async function HomePage() {
           .select({ learnerId: enrollments.learnerId })
           .from(enrollments)
           .where(inArray(enrollments.learnerId, learnerIds))
+      : [];
+
+    // Active matches with the tutor's name, for the "Book" links.
+    const bookableMatches = learnerIds.length
+      ? await tx
+          .select({
+            enrollmentId: enrollments.id,
+            learnerId: enrollments.learnerId,
+            subject: enrollments.subject,
+            tutorName: profiles.name,
+          })
+          .from(enrollments)
+          .innerJoin(tutors, eq(tutors.id, enrollments.tutorId))
+          .innerJoin(profiles, eq(profiles.id, tutors.profileId))
+          .where(and(eq(enrollments.status, "active"), inArray(enrollments.learnerId, learnerIds)))
       : [];
 
     const [account] = await tx.select({ id: accounts.id }).from(accounts).where(eq(accounts.ownerId, profile.id));
@@ -74,8 +95,13 @@ export default async function HomePage() {
       matchedLearnerIds: new Set(matches.map((match) => match.learnerId)),
       ownsAccount: Boolean(account),
       sentInvites,
+      bookableMatches,
     };
   });
+
+  const now = new Date();
+  const upcomingSessions = bookableMatches.length ? await listVisibleSessions(user, now) : [];
+  const { booked, skipped, moved } = await searchParams;
 
   const origin = await siteOrigin();
   const firstName = profile.name.split(" ")[0];
@@ -94,8 +120,26 @@ export default async function HomePage() {
           , so far.
         </h1>
         <p className={styles.muted}>
-          Booking opens once TutorMe matches you with a tutor and a card is on file. We&apos;ll be in touch about the match.
+          Once TutorMe matches a learner with a tutor, you can book sessions right here. Sessions are 60 minutes, Eastern
+          time, and free to cancel or move up to 24 hours before.
         </p>
+
+        {/* ---------- Just booked or moved ---------- */}
+        {booked && (
+          <p className={styles.note}>
+            {booked === "1" ? "booked! ✓" : `booked ${booked} weekly sessions ✓`}
+            {skipped && skipped !== "0" && ` (${skipped} week${skipped === "1" ? " was" : "s were"} already taken, so skipped)`}
+          </p>
+        )}
+        {moved && <p className={styles.note}>moved ✓</p>}
+
+        {/* ---------- Upcoming sessions ---------- */}
+        {bookableMatches.length > 0 && (
+          <section className={styles.fields} aria-labelledby="coming-up-heading">
+            <h2 id="coming-up-heading" className={styles.heading}>Coming up</h2>
+            <SessionList items={upcomingSessions} viewer="family" now={now} />
+          </section>
+        )}
 
         {/* ---------- Learners ---------- */}
         <section className={styles.fields} aria-labelledby="learners-heading">
@@ -128,6 +172,15 @@ export default async function HomePage() {
                     {[learner.grade, learner.subjects.join(", ")].filter(Boolean).join(" · ") || "No details yet"}
                   </p>
                   {learner.goals && <p>{learner.goals}</p>}
+
+                  {/* One "Book" link per active match */}
+                  {bookableMatches
+                    .filter((match) => match.learnerId === learner.id)
+                    .map((match) => (
+                      <Link key={match.enrollmentId} className={styles.primary} href={`/book/${match.enrollmentId}`}>
+                        Book {match.subject} with {match.tutorName.split(" ")[0]}
+                      </Link>
+                    ))}
 
                   {/* A minor waiting on their parent: show the link to send */}
                   {isMe && invite?.kind === "parent" && (

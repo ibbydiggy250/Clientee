@@ -1,0 +1,181 @@
+/*
+ * Planner pieces for hours and booking, in the Margin Notes look:
+ * day pages with handwritten headers, washi-tape strips for weekly hours,
+ * and ticket-stub time slots that lift when hovered and get stamped when picked.
+ * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
+ */
+
+/* ---------- A row of day pages ---------- */
+
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+@media (max-width: 900px) {
+  .week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .week { grid-template-columns: 1fr; }
+}
+
+.day {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+  min-height: 9rem;
+  padding: 0.9rem 0.75rem 1rem;
+  background: var(--card);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgb(27 35 64 / 0.08), 0 12px 24px -18px rgb(27 35 64 / 0.5);
+}
+.dayName {
+  font-family: var(--font-hand), cursive;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--pen);
+}
+.dayDate { font-size: 0.8rem; color: var(--ink-soft); }
+.empty { font-size: 0.8rem; color: rgb(27 35 64 / 0.35); font-style: italic; }
+
+/* ---------- Washi tape: one weekly hours window ---------- */
+
+.tape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  background: repeating-linear-gradient(-45deg, rgb(240 214 140 / 0.85) 0 8px, rgb(246 226 160 / 0.85) 8px 16px);
+  clip-path: polygon(2% 0, 100% 4%, 98% 100%, 0 96%);
+  font-size: 0.82rem;
+  font-weight: 600;
+  animation: stick 0.35s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+.tape span { white-space: nowrap; }
+@keyframes stick {
+  from { opacity: 0; transform: translateY(-6px) rotate(-2deg); }
+}
+.tapeRemove {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.tapeRemove:hover { background: var(--pen); color: var(--paper); }
+
+/* The booking planner shows only days that have open times, so its day
+   pages get a comfortable minimum width instead of a fixed 7 columns. */
+.plannerWeek {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+/* ---------- Ticket stubs: one bookable time ---------- */
+
+.tickets { display: grid; gap: 0.45rem; }
+.ticket {
+  position: relative;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px dashed rgb(27 35 64 / 0.4);
+  border-radius: 6px;
+  background: var(--paper);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+/* The notches of a ticket stub */
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0.7rem;
+  height: 0.7rem;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: var(--card);
+}
+.ticket::before { left: -0.4rem; }
+.ticket::after { right: -0.4rem; }
+.ticket:hover { transform: translateY(-2px); border-color: var(--ink); box-shadow: 0 8px 14px -10px rgb(27 35 64 / 0.6); }
+.ticket:active { transform: translateY(0) scale(0.98); }
+.ticket:focus-visible { outline: 2px dashed var(--pen); outline-offset: 3px; }
+.ticket[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  animation: stamp 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes stamp {
+  40% { transform: scale(1.06) rotate(-1.5deg); }
+}
+
+/* ---------- The confirm bar that slides up once a time is picked ---------- */
+
+.confirm {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 2;
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 6px 6px 0 var(--pen);
+  animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+}
+.confirmTitle {
+  font-family: var(--font-display), serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+/* ---------- Session list rows ---------- */
+
+.sessionRow {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 0.25rem;
+  border-bottom: 1px solid rgb(27 35 64 / 0.15);
+}
+@media (max-width: 640px) {
+  .sessionRow { grid-template-columns: 1fr; gap: 0.5rem; }
+}
+/* A tear-off calendar page with the date */
+.calendarPage {
+  display: grid;
+  justify-items: center;
+  padding: 0.35rem 0.5rem 0.5rem;
+  border-top: 6px solid var(--pen);
+  border-radius: 4px;
+  background: var(--card);
+  box-shadow: 0 6px 12px -10px rgb(27 35 64 / 0.6);
+  line-height: 1.1;
+}
+.calendarMonth { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pen); }
+.calendarDay { font-family: var(--font-display), serif; font-size: 1.9rem; font-weight: 600; }
+.calendarTime { font-size: 0.75rem; color: var(--ink-soft); }
+
+.sessionActions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
+.small { font-size: 0.875rem; color: var(--ink-soft); }
+.struck { text-decoration: line-through; text-decoration-color: var(--pen); text-decoration-thickness: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tape, .ticket[aria-pressed="true"], .confirm { animation: none; }
+}

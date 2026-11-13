@@ -250,9 +250,18 @@ export const sessions = pgTable(
     zoomMeetingId: text("zoom_meeting_id"),
     zoomJoinUrl: text("zoom_join_url"),
     priceCents: integer("price_cents").notNull(),
+    // Who booked it, and which weekly series it belongs to (null for one-offs).
+    bookedBy: uuid("booked_by").references(() => profiles.id),
+    seriesId: uuid("series_id"),
+    // Cancellation. `cancelledLate` means the family cancelled with under
+    // 24 hours' notice, so it's charged like a completed session.
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: uuid("cancelled_by").references(() => profiles.id),
+    cancelledLate: boolean("cancelled_late").notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [
+    index("sessions_series_idx").on(table.seriesId),
     index("sessions_enrollment_idx").on(table.enrollmentId),
     index("sessions_taught_by_idx").on(table.taughtBy),
     index("sessions_starts_at_idx").on(table.startsAt),

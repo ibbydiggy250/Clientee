@@ -6,12 +6,16 @@
  * active matches, and only while their contract allows (see migration 0005).
  */
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 
 import { PenCircle } from "@/components/paper/PaperPage";
 import styles from "@/components/paper/paper.module.css";
 import { enrollments, learners, tutors } from "@/db/schema";
 import type { Profile } from "@/lib/auth/current-user";
+import { listVisibleSessions } from "@/lib/booking";
 import { withUser } from "@/lib/db";
+
+import { SessionList } from "../sessions/SessionList";
 
 function formatDate(isoDate: string | null): string {
   if (!isoDate) return "—";
@@ -42,6 +46,9 @@ export async function TutorHome({ profile }: { profile: Profile }) {
     return { tutor, matches };
   });
 
+  const now = new Date();
+  const sessionsToShow = await listVisibleSessions({ id: profile.id, email: profile.email, name: profile.name }, now);
+
   const firstName = profile.name.split(" ")[0];
   const hasEnded = tutor?.status === "inactive";
 
@@ -59,6 +66,18 @@ export async function TutorHome({ profile }: { profile: Profile }) {
         Contract: {formatDate(tutor?.termStart ?? null)} → {formatDate(tutor?.termEnd ?? null)}
         {tutor?.subjects.length ? ` · ${tutor.subjects.join(", ")}` : ""}
       </p>
+
+      {!hasEnded && (
+        <section className={styles.fields} aria-labelledby="schedule-heading">
+          <div className={styles.row}>
+            <h2 id="schedule-heading" className={styles.heading}>Your schedule</h2>
+            <Link className={styles.secondary} href="/availability">
+              Set your weekly hours
+            </Link>
+          </div>
+          <SessionList items={sessionsToShow} viewer="tutor" now={now} />
+        </section>
+      )}
 
       {hasEnded ? (
         <p className={styles.error}>Your contract has ended. Contact TutorMe if this is a mistake.</p>
