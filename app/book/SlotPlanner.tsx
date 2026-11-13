@@ -16,7 +16,7 @@ import { bookAction, rescheduleAction, type SessionFormState } from "../sessions
 export type PlannerSlot = { date: string; clock: string; startsAt: string };
 
 type Props =
-  | { mode: "book"; enrollmentId: string; slots: PlannerSlot[]; priceLabel: string }
+  | { mode: "book"; enrollmentId: string; slots: PlannerSlot[]; priceLabel: string; isTrial?: boolean }
   | { mode: "move"; sessionId: string; slots: PlannerSlot[]; priceLabel?: undefined };
 
 /** "Thu" and "Nov 20" for an ISO date (dates are already Eastern calendar dates). */
@@ -103,7 +103,13 @@ export function SlotPlanner(props: Props) {
             {dayLabels(picked.date).long} at {formatClock(picked.clock)} ET
           </span>
 
-          {props.mode === "book" && (
+          {props.mode === "book" && props.isTrial && (
+            <span className={booking.small}>
+              60 minutes · {props.priceLabel} · your trial session. Weekly booking opens after you say it was a good fit.
+            </span>
+          )}
+
+          {props.mode === "book" && !props.isTrial && (
             <>
               <label className={paper.consent}>
                 <input
@@ -125,7 +131,15 @@ export function SlotPlanner(props: Props) {
           {state.error && <p role="alert" className={paper.error}>{state.error}</p>}
           <div className={paper.row}>
             <button type="submit" className={paper.primary} disabled={isSaving}>
-              {isSaving ? "Saving…" : props.mode === "book" ? (repeatWeekly ? "Book weekly" : "Book this time") : "Move it here"}
+              {isSaving
+                ? "Saving…"
+                : props.mode === "move"
+                  ? "Move it here"
+                  : props.isTrial
+                    ? "Book the trial"
+                    : repeatWeekly
+                      ? "Book weekly"
+                      : "Book this time"}
             </button>
             <button type="button" className={paper.link} onClick={() => setPicked(null)}>
               Pick another time

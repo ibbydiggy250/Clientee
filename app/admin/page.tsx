@@ -1,11 +1,16 @@
 /**
  * Admin: intake queue and matching (mvp-spec.md, "Admin console").
- * New families arrive here; each learner is matched to a tutor by hand.
+ * Match requests from the rule-based flow wait here for approval; any
+ * learner can still be matched by hand as an override.
  */
 import paper from "@/components/paper/paper.module.css";
 import { getIntake, getRecentMatches, getRoster } from "@/lib/admin";
+import { formatSessionTime } from "@/lib/eastern-time";
+import { getOpenRequests } from "@/lib/matching";
+import { levelLabel } from "@/lib/matching-options";
 
 import styles from "./admin.module.css";
+import { DecideMatchButtons } from "./DecideMatchButtons";
 import { dollars, getAdminActor } from "./guard";
 import { MatchForm } from "./MatchForm";
 
@@ -18,6 +23,8 @@ export default async function AdminIntakePage() {
     getRecentMatches(admin),
     getRoster(admin),
   ]);
+  // Read after the admin check above (getIntake asserts admin).
+  const openRequests = await getOpenRequests(admin, new Date());
 
   const unmatchedCount = learners.filter((learner) => learner.matches.length === 0).length;
   const pendingTutorInvites = roster.filter((tutor) => tutor.status === "invited").length;
@@ -46,6 +53,41 @@ export default async function AdminIntakePage() {
         </div>
       </div>
 
+      {/* ---------- Match requests: waiting on the tutor or on approval ---------- */}
+      {openRequests.length > 0 && (
+        <section className={paper.fields} aria-labelledby="requests-heading">
+          <h2 id="requests-heading" className={paper.heading}>Match requests</h2>
+          <div className={styles.ledger} style={{ "--columns": "1.2fr 1.2fr 1fr" } as React.CSSProperties}>
+            <div className={styles.ledgerHead}>
+              <span>Learner → tutor</span>
+              <span>Family&apos;s notes</span>
+              <span>Status</span>
+            </div>
+            {openRequests.map((request) => (
+              <div key={request.id} className={styles.ledgerRow}>
+                <div className={paper.field}>
+                  <span className={styles.name}>{request.learnerName} → {request.tutorName}</span>
+                  <span className={styles.small}>
+                    {request.subject} · {request.level} · score {request.score}
+                  </span>
+                </div>
+                <span className={styles.small}>{request.notes ? `“${request.notes}”` : "—"}</span>
+                <div className={paper.field}>
+                  {request.status === "accepted" ? (
+                    <span className={styles.margin}>tutor said yes — your call</span>
+                  ) : (
+                    <span className={styles.small}>
+                      Waiting for the tutor · until {request.expiresAt ? formatSessionTime(request.expiresAt) : "—"} ET
+                    </span>
+                  )}
+                  <DecideMatchButtons requestId={request.id} canApprove={request.status === "accepted"} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ---------- The queue ---------- */}
       <section className={paper.fields} aria-labelledby="queue-heading">
         <h2 id="queue-heading" className={paper.heading}>Learners</h2>
@@ -65,6 +107,11 @@ export default async function AdminIntakePage() {
                   <span className={styles.small}>
                     {[learner.grade, learner.isMinor ? "under 18" : "18+"].filter(Boolean).join(" · ")}
                   </span>
+                  {learner.unmetSearch && (
+                    <span className={styles.margin}>
+                      searched {learner.unmetSearch.subject} ({levelLabel(learner.unmetSearch.level)}) — no tutor fit, match by hand
+                    </span>
+                  )}
                   {learner.matches.length === 0 ? (
                     <span className={styles.margin}>needs a tutor!</span>
                   ) : (
@@ -84,7 +131,7 @@ export default async function AdminIntakePage() {
                   <span className={styles.small}>{learner.holderEmail}</span>
                 </div>
                 <details className={styles.drawer} style={{ gridColumn: "1 / -1" }}>
-                  <summary>{learner.matches.length === 0 ? "Match with a tutor" : "Add another subject"}</summary>
+                  <summary>{learner.matches.length === 0 ? "Match by hand" : "Add another subject by hand"}</summary>
                   <div className={styles.drawerBody}>
                     <MatchForm
                       learnerId={learner.id}

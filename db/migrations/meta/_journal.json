@@ -57,6 +57,20 @@
       "when": 1794592729200,
       "tag": "0007_booking_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794596329600,
+      "tag": "0008_matching_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794596336665,
+      "tag": "0009_matching_access",
+      "breakpoints": true
     }
   ]
 }

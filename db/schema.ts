@@ -76,6 +76,36 @@ export const paymentStatus = pgEnum("payment_status", [
   "refunded",
 ]);
 
+/** School stages plus test prep (chosen Nov 13, 2026). */
+export const studyLevel = pgEnum("study_level", [
+  "elementary",
+  "middle_school",
+  "high_school",
+  "ap",
+  "sat_act",
+  "college",
+]);
+
+/**
+ * A match request's life (mvp-spec.md, "Matching"):
+ *   suggested → requested (family picks) → accepted (tutor, within 48h) → approved (admin)
+ * Ways it ends early:
+ *   skipped   — the family asked for someone else
+ *   declined  — the tutor (or admin) said no, or the trial wasn't a fit
+ *   expired   — the tutor didn't answer within 48 hours
+ *   cancelled — admin matched the learner by hand instead
+ */
+export const matchStatus = pgEnum("match_status", [
+  "suggested",
+  "requested",
+  "accepted",
+  "approved",
+  "declined",
+  "expired",
+  "skipped",
+  "cancelled",
+]);
+
 // ---------------------------------------------------------------------------
 // People and accounts
 // ---------------------------------------------------------------------------
@@ -123,6 +153,12 @@ export const learners = pgTable(
     goals: text("goals"),
     baseline: text("baseline"),
     subjects: text("subjects").array().notNull().default([]),
+    /**
+     * What the family asked for when finding a tutor: weekly availability,
+     * teaching style, main goal, tutor gender, free-text notes.
+     * Shape: LearnerPreferences in lib/matching.ts.
+     */
+    preferences: jsonb("preferences").notNull().default({}),
     // Parental consent, recorded when a parent accepts the link to a minor.
     consentGivenAt: timestamp("consent_given_at", { withTimezone: true }),
     consentGivenBy: uuid("consent_given_by").references(() => profiles.id),
@@ -180,6 +216,23 @@ export const tutors = pgTable("tutors", {
   splitPct: numeric("split_pct", { precision: 5, scale: 2 })
     .notNull()
     .default("75"),
+
+  // ----- Public profile, shown to families on suggestion cards -----
+  levels: studyLevel("levels").array().notNull().default([]),
+  schoolYear: text("school_year"), // e.g. "Columbia, junior"
+  bio: text("bio"), // approved by admin
+  introVideoUrl: text("intro_video_url"), // approved by admin
+  // The tutor's latest edits, waiting for admin approval (contact-info check).
+  bioDraft: text("bio_draft"),
+  introVideoUrlDraft: text("intro_video_url_draft"),
+
+  // ----- Private, used only for matching -----
+  maxLearners: integer("max_learners").notNull().default(5),
+  birthDate: date("birth_date"), // tutors under 18 stay out of matching
+  gender: text("gender"), // "female", "male", or null
+  teachingStyles: text("teaching_styles").array().notNull().default([]),
+  goalFocus: text("goal_focus").array().notNull().default([]),
+
   createdAt: createdAt(),
 });
 
@@ -217,6 +270,9 @@ export const enrollments = pgTable(
     tier: enrollmentTier("tier").notNull().default("standard"),
     rateCents: integer("rate_cents").notNull(), // hourly price, e.g. 6000 = $60
     status: enrollmentStatus("status").notNull().default("active"),
+    // True from admin approval until the family says the trial was a good fit.
+    // While true, only one (trial) session can be booked.
+    inTrial: boolean("in_trial").notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [
@@ -227,6 +283,43 @@ export const enrollments = pgTable(
     uniqueIndex("enrollments_one_active_per_subject")
       .on(table.learnerId, sql`lower(${table.subject})`)
       .where(sql`status = 'active'`),
+  ],
+);
+
+/**
+ * One suggested tutor for one learner and subject, and how it went
+ * (mvp-spec.md, "Matching"). Families see up to three suggestions at a time;
+ * picking one makes it "requested" with a 48-hour deadline for the tutor.
+ * Written only by trusted server code (lib/matching.ts).
+ */
+export const matchRequests = pgTable(
+  "match_requests",
+  {
+    id: id(),
+    learnerId: uuid("learner_id")
+      .notNull()
+      .references(() => learners.id),
+    tutorId: uuid("tutor_id")
+      .notNull()
+      .references(() => tutors.id),
+    subject: text("subject").notNull(),
+    level: studyLevel("level").notNull(),
+    score: integer("score").notNull(), // higher is a better fit
+    rank: smallint("rank").notNull(), // 1 = recommended, 2–3 = alternates
+    status: matchStatus("status").notNull().default("suggested"),
+    requestedBy: uuid("requested_by").references(() => profiles.id),
+    expiresAt: timestamp("expires_at", { withTimezone: true }), // set when requested
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    enrollmentId: uuid("enrollment_id").references(() => enrollments.id), // set when approved
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index("match_requests_learner_idx").on(table.learnerId),
+    index("match_requests_tutor_idx").on(table.tutorId),
+    // At most one live request per learner and subject.
+    uniqueIndex("match_requests_one_live_per_subject")
+      .on(table.learnerId, sql`lower(${table.subject})`)
+      .where(sql`status in ('requested', 'accepted')`),
   ],
 );
 
@@ -258,6 +351,8 @@ export const sessions = pgTable(
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancelledBy: uuid("cancelled_by").references(() => profiles.id),
     cancelledLate: boolean("cancelled_late").notNull().default(false),
+    // The first session with a newly matched tutor (normal price).
+    isTrial: boolean("is_trial").notNull().default(false),
     createdAt: createdAt(),
   },
   (table) => [

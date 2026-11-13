@@ -52,6 +52,7 @@ export default async function BookPage({ params }: { params: Promise<{ enrollmen
             mode="book"
             enrollmentId={enrollmentId}
             priceLabel={`${dollars(page.rateCents)}`}
+            isTrial={page.inTrial}
             slots={page.slots.map((slot) => ({ date: slot.date, clock: slot.clock, startsAt: slot.startsAt.toISOString() }))}
           />
         )}

@@ -167,7 +167,9 @@
 
 /* A card that holds a form: fields stretch to the card's full width */
 .formCard { justify-items: stretch; }
-.formCard > button { justify-self: start; }
+.formCard > button,
+.formCard > .stamp,
+.formCard > a { justify-self: start; }
 
 /* A card you can pick (used as a radio button) */
 .choice {

@@ -11,7 +11,9 @@ import { siteOrigin } from "@/lib/site-origin";
 import { CopyLink } from "../../home/CopyLink";
 import styles from "../admin.module.css";
 import { getAdminActor } from "../guard";
+import { profileDraftDecisionAction } from "../../match/actions";
 import { InviteTutorForm } from "./InviteTutorForm";
+import { MatchingProfileForm } from "./MatchingProfileForm";
 import { ReissueInviteForm } from "./ReissueInviteForm";
 import { TutorTermForm } from "./TutorTermForm";
 
@@ -30,6 +32,20 @@ function termWarning(tutor: RosterTutor): string | null {
   if (days < 0) return `term ended ${-days} day${days === -1 ? "" : "s"} ago`;
   if (days <= ALERT_WINDOW_DAYS) return `term ends in ${days} day${days === 1 ? "" : "s"} — plan the handoff`;
   return null;
+}
+
+/** What's still missing before this tutor can appear in suggestions, or null. */
+function missingForMatching(tutor: RosterTutor): string | null {
+  const missing = [
+    tutor.matching.levels.length === 0 && "levels",
+    !tutor.matching.birthDate && "birth date",
+    tutor.subjects.length === 0 && "subjects",
+  ].filter(Boolean);
+  return missing.length ? missing.join(", ") : null;
+}
+
+function hasPendingDraft(tutor: RosterTutor): boolean {
+  return tutor.matching.bioDraft !== null || tutor.matching.introVideoUrlDraft !== null;
 }
 
 export default async function AdminTutorsPage() {
@@ -70,6 +86,10 @@ export default async function AdminTutorsPage() {
                       {formatDate(tutor.termStart)} → {formatDate(tutor.termEnd)}
                     </span>
                     {warning && <span className={styles.margin}>{warning}</span>}
+                    {tutor.status === "active" && missingForMatching(tutor) && (
+                      <span className={styles.margin}>not in suggestions yet: add {missingForMatching(tutor)}</span>
+                    )}
+                    {hasPendingDraft(tutor) && <span className={styles.margin}>new bio waiting for your ok</span>}
                   </div>
                   <span className={styles.money}>{tutor.activeLearners}</span>
 
@@ -90,6 +110,32 @@ export default async function AdminTutorsPage() {
                       )}
                     </div>
                   </details>
+
+                  {tutor.status !== "invited" && (
+                    <details className={styles.drawer} style={{ gridColumn: "1 / -1" }}>
+                      <summary>Matching profile{hasPendingDraft(tutor) ? " · bio to review" : ""}</summary>
+                      <div className={styles.drawerBody}>
+                        {hasPendingDraft(tutor) && (
+                          <form action={profileDraftDecisionAction} className={paper.fields}>
+                            <input type="hidden" name="tutorId" value={tutor.id} />
+                            {/* What admin is reading now; only this exact text gets published. */}
+                            <input type="hidden" name="reviewedBio" value={tutor.matching.bioDraft ?? ""} />
+                            <input type="hidden" name="reviewedVideo" value={tutor.matching.introVideoUrlDraft ?? ""} />
+                            <span className={paper.label}>New bio from the tutor (check for contact details)</span>
+                            <p className={styles.small}>“{tutor.matching.bioDraft ?? tutor.matching.bio ?? ""}”</p>
+                            {tutor.matching.introVideoUrlDraft && (
+                              <p className={styles.small}>Video: {tutor.matching.introVideoUrlDraft}</p>
+                            )}
+                            <div className={paper.row}>
+                              <button type="submit" name="decision" value="approve" className={paper.primary}>Publish it</button>
+                              <button type="submit" name="decision" value="reject" className={paper.secondary}>Send back</button>
+                            </div>
+                          </form>
+                        )}
+                        <MatchingProfileForm tutorId={tutor.id} profile={tutor.matching} />
+                      </div>
+                    </details>
+                  )}
                 </div>
               );
             })}

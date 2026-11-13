@@ -1,0 +1,169 @@
+/*
+ * Matching pieces in the Margin Notes look: tutor profile cards like
+ * trading cards (monogram, stamped "Recommended"), a deadline clock note,
+ * and the availability rows of the search form.
+ * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
+ */
+
+/* ---------- Tutor profile cards ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  grid-auto-rows: auto;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .cards { grid-template-columns: 1fr; }
+}
+.alternates { display: grid; gap: 1.25rem; }
+
+.tutorCard {
+  position: relative;
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.75rem;
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 1px 0 rgb(27 35 64 / 0.08), 0 18px 34px -22px rgb(27 35 64 / 0.55);
+  animation: deal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s;
+}
+.tutorCard:nth-child(2) { animation-delay: 0.08s; }
+.tutorCard:hover { transform: translateY(-3px); box-shadow: 0 1px 0 rgb(27 35 64 / 0.08), 0 26px 40px -22px rgb(27 35 64 / 0.6); }
+@keyframes deal {
+  from { opacity: 0; transform: translateY(18px) rotate(-1.5deg); }
+}
+.recommended { border: 2px solid var(--ink); }
+
+/* A rubber stamp across the corner of the top pick */
+.recommendedStamp {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  padding: 0.2rem 0.6rem;
+  border: 3px double var(--pen);
+  border-radius: 4px;
+  color: var(--pen);
+  font-family: var(--font-display), serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  rotate: 8deg;
+  animation: thump 0.45s 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes thump {
+  from { opacity: 0; transform: scale(1.8); }
+}
+
+.monogram {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-display), serif;
+  font-size: 1.35rem;
+  font-style: italic;
+}
+.recommended .monogram { width: 4.25rem; height: 4.25rem; font-size: 1.7rem; background: var(--pen); }
+
+.tutorName {
+  font-family: var(--font-display), serif;
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.chip {
+  padding: 0.15rem 0.6rem;
+  border: 1.5px solid rgb(27 35 64 / 0.35);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.bio { line-height: 1.55; }
+.quiet { font-size: 0.875rem; color: var(--ink-soft); }
+
+/* ---------- Status notes for a request in progress ---------- */
+
+.statusCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem 1.25rem;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-left: 4px solid var(--pen);
+  border-radius: 6px;
+  background: var(--card);
+}
+/* A little hand-drawn clock for "waiting" states */
+.clock {
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+}
+.clock::before,
+.clock::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 2.5px;
+  translate: -50% 0;
+  transform-origin: bottom;
+  background: var(--pen);
+  border-radius: 2px;
+}
+.clock::before { height: 38%; animation: tick 12s linear infinite; }
+.clock::after { height: 28%; background: var(--ink); animation: tick 120s linear infinite; }
+@keyframes tick { to { rotate: 360deg; } }
+
+/* ---------- Search form: weekly availability rows ---------- */
+
+.timeRow {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+@media (max-width: 640px) {
+  .timeRow { grid-template-columns: 1fr 1fr; }
+}
+.removeRow {
+  min-height: 3rem;
+  padding: 0 0.75rem;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.removeRow:hover { background: rgb(224 65 43 / 0.1); color: var(--pen); }
+
+/* Pill-shaped radio choices (style, goal, gender) */
+.pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--card);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.pill:hover { transform: translateY(-1px); }
+.pill input { position: absolute; opacity: 0; pointer-events: none; }
+.pill:has(input:checked) { background: var(--ink); color: var(--paper); }
+.pill:has(input:focus-visible) { outline: 2px dashed var(--pen); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorCard, .recommendedStamp, .clock::before, .clock::after { animation: none; }
+}

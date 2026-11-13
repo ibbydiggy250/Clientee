@@ -290,6 +290,24 @@ async function runChecks() {
     ),
   );
 
+  console.log("\nMatching data");
+  check(
+    "Families can't read match requests directly (server code only)",
+    await isRefused(people.parentA, "select * from match_requests"),
+  );
+  check(
+    "Tutors can't read match requests directly either",
+    await isRefused(people.tutorActive, "select * from match_requests"),
+  );
+  check(
+    "A family can't read a tutor's private birth date",
+    await isRefused(people.parentA, "select birth_date from tutors where id = $1", [ids.tutorActive]),
+  );
+  check(
+    "A family can read a matched tutor's public bio",
+    !(await isRefused(people.parentA, "select bio, school_year from tutors where id = $1", [ids.tutorActive])),
+  );
+
   console.log("\nParental consent");
   check(
     "Nobody can write consent directly (only invite acceptance can)",

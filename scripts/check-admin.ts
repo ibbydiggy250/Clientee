@@ -21,6 +21,7 @@ import {
 } from "../lib/admin";
 import type { SignedInUser } from "../lib/auth/current-user";
 import { db, orm } from "../lib/db";
+import { approveRequest, getOpenRequests, MatchingError, rejectRequest } from "../lib/matching";
 
 let failures = 0;
 
@@ -34,7 +35,8 @@ async function isRefused(task: () => Promise<unknown>): Promise<boolean> {
     await task();
     return false;
   } catch (problem) {
-    return problem instanceof AdminError;
+    // Admin steps in lib/admin.ts throw AdminError; those in lib/matching.ts throw MatchingError.
+    return problem instanceof AdminError || problem instanceof MatchingError;
   }
 }
 
@@ -67,6 +69,10 @@ async function main() {
     "Non-admin can't change a tutor's contract",
     await isRefused(() => updateTutorTerm(outsider, { tutorId: anyId, termEnd: "2027-01-01", status: "active" })),
   );
+
+  check("Non-admin can't see open match requests", await isRefused(() => getOpenRequests(outsider, new Date())));
+  check("Non-admin can't approve a match", await isRefused(() => approveRequest(outsider, anyId, new Date())));
+  check("Non-admin can't turn down a match", await isRefused(() => rejectRequest(outsider, anyId, new Date())));
 
   const [admin] = await orm.select().from(profiles).where(eq(profiles.role, "admin")).limit(1);
   if (admin) {

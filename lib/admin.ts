@@ -13,6 +13,7 @@ import { accounts, enrollments, invites, learners, profiles, tutors } from "@/db
 import type { SignedInUser } from "@/lib/auth/current-user";
 import { orm } from "@/lib/db";
 import { createInvite } from "@/lib/invites";
+import { clearUnmetSearch, closeOpenRequests, readUnmetSearch, type UnmetSearch } from "@/lib/matching";
 
 /** A problem the admin can fix; its message is safe to show. */
 export class AdminError extends Error {}
@@ -43,6 +44,8 @@ export type IntakeLearner = {
   holderName: string | null;
   holderEmail: string | null;
   matches: { subject: string; tutorName: string; rateCents: number }[];
+  /** The family searched and nobody fit: match this subject by hand. */
+  unmetSearch: UnmetSearch | null;
 };
 
 export type MatchableTutor = { id: string; name: string; subjects: string[] };
@@ -91,10 +94,12 @@ export async function getIntake(actor: SignedInUser) {
     matches: activeMatches
       .filter((match) => match.learnerId === learner.id)
       .map(({ subject, tutorName, rateCents }) => ({ subject, tutorName, rateCents })),
+    unmetSearch: readUnmetSearch(learner.preferences),
   }));
 
-  // Unmatched learners first: they're the queue.
-  learnersForIntake.sort((a, b) => Number(a.matches.length > 0) - Number(b.matches.length > 0));
+  // The queue first: learners nobody fit, then unmatched learners, then the rest.
+  const queueOrder = (learner: IntakeLearner) => (learner.unmetSearch ? 0 : learner.matches.length === 0 ? 1 : 2);
+  learnersForIntake.sort((a, b) => queueOrder(a) - queueOrder(b));
 
   const activeTutors: MatchableTutor[] = await orm
     .select({ id: tutors.id, name: profiles.name, subjects: tutors.subjects })
@@ -141,6 +146,10 @@ export async function matchLearner(actor: SignedInUser, input: z.infer<typeof ma
     }
     throw problem;
   }
+
+  // A hand match overrides the suggestion flow for this subject.
+  await closeOpenRequests(input.learnerId, input.subject, new Date());
+  await clearUnmetSearch(input.learnerId, input.subject);
 }
 
 /** True if Postgres refused a row because of a unique rule (error 23505). */
@@ -188,6 +197,20 @@ export type RosterTutor = {
   termEnd: string | null;
   activeLearners: number;
   pendingInviteCode: string | null;
+  /** Matching profile (set by admin) and the tutor's bio/video, live and pending. */
+  matching: {
+    levels: string[];
+    schoolYear: string | null;
+    maxLearners: number;
+    birthDate: string | null;
+    gender: string | null;
+    teachingStyles: string[];
+    goalFocus: string[];
+    bio: string | null;
+    introVideoUrl: string | null;
+    bioDraft: string | null;
+    introVideoUrlDraft: string | null;
+  };
 };
 
 export async function getRoster(actor: SignedInUser): Promise<RosterTutor[]> {
@@ -226,6 +249,19 @@ export async function getRoster(actor: SignedInUser): Promise<RosterTutor[]> {
       termEnd: tutor.termEnd,
       activeLearners: learnerCounts.find((count) => count.tutorId === tutor.id)?.count ?? 0,
       pendingInviteCode: invite?.code ?? null,
+      matching: {
+        levels: tutor.levels,
+        schoolYear: tutor.schoolYear,
+        maxLearners: tutor.maxLearners,
+        birthDate: tutor.birthDate,
+        gender: tutor.gender,
+        teachingStyles: tutor.teachingStyles,
+        goalFocus: tutor.goalFocus,
+        bio: tutor.bio,
+        introVideoUrl: tutor.introVideoUrl,
+        bioDraft: tutor.bioDraft,
+        introVideoUrlDraft: tutor.introVideoUrlDraft,
+      },
     };
   });
 }

@@ -182,6 +182,13 @@ export default async function HomePage({
                       </Link>
                     ))}
 
+                  {/* Matching: suggestions, requests and trials live on this page */}
+                  {learner.accountId && (
+                    <Link className={styles.secondary} href={`/match/${learner.id}`}>
+                      Find a tutor
+                    </Link>
+                  )}
+
                   {/* A minor waiting on their parent: show the link to send */}
                   {isMe && invite?.kind === "parent" && (
                     <CopyLink label="Send this link to your parent" url={origin + invitePath(invite.code)} />

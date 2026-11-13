@@ -21,6 +21,7 @@ import type { SignedInUser } from "@/lib/auth/current-user";
 import { orm, withUser } from "@/lib/db";
 import { hasPostgresCode } from "@/lib/db-errors";
 import { addDays, easternClock, easternDate, easternMoment, weekdayOf } from "@/lib/eastern-time";
+import { publicTutorName } from "@/lib/public-name";
 
 export const SESSION_MINUTES = 60;
 /** How far ahead a booking must be. */
@@ -150,7 +151,7 @@ async function loadBusyTimes(tutorId: string, from: Date, to: Date, ignoreSessio
 }
 
 /** True if the user is this learner's account holder, or the learner. Asked of the database's own rule. */
-async function isFamilyOf(user: SignedInUser, learnerId: string): Promise<boolean> {
+export async function isFamilyOf(user: SignedInUser, learnerId: string): Promise<boolean> {
   return withUser(user.id, async (tx) => {
     const result = await tx.execute(sql`select app.is_family_of(${learnerId}::uuid) as ok`);
     return Boolean((result.rows[0] as { ok?: boolean } | undefined)?.ok);
@@ -164,10 +165,12 @@ async function isAdmin(user: SignedInUser): Promise<boolean> {
 
 /** Why new sessions can't be booked on this match right now, or null if they can. */
 function whyBookingIsClosed(context: BookingContext, now: Date): string | null {
+  // Families read these, so the tutor is "first name + last initial".
+  const tutor = publicTutorName(context.tutorName);
   if (context.enrollment.status !== "active") return "This tutoring match isn't active any more.";
-  if (context.tutorStatus !== "active") return `${context.tutorName} isn't taking new bookings.`;
-  if (context.termEnd && context.termEnd < easternDate(now)) return `${context.tutorName}'s contract has ended.`;
-  if (context.windows.length === 0) return `${context.tutorName} hasn't set their weekly hours yet.`;
+  if (context.tutorStatus !== "active") return `${tutor} isn't taking new bookings.`;
+  if (context.termEnd && context.termEnd < easternDate(now)) return `${tutor}'s contract has ended.`;
+  if (context.windows.length === 0) return `${tutor} hasn't set their weekly hours yet.`;
   return null;
 }
 
@@ -189,6 +192,8 @@ export type BookingPage = {
   rateCents: number;
   closedReason: string | null;
   slots: Slot[];
+  /** True while the match is in its trial: one session only, no weekly repeat. */
+  inTrial: boolean;
 };
 
 export async function getBookingPage(user: SignedInUser, enrollmentId: string, now: Date): Promise<BookingPage> {
@@ -207,6 +212,7 @@ export async function getBookingPage(user: SignedInUser, enrollmentId: string, n
     rateCents: context.enrollment.rateCents,
     closedReason,
     slots,
+    inTrial: context.enrollment.inTrial,
   };
 }
 
@@ -232,6 +238,17 @@ export async function bookSessions(
   }
   const closedReason = whyBookingIsClosed(context, now);
   if (closedReason) throw new BookingError(closedReason);
+
+  // A new match starts with one trial session; weekly booking opens after a good trial.
+  const isTrial = context.enrollment.inTrial;
+  if (isTrial) {
+    if (input.repeatWeekly) throw new BookingError("Book the trial session first. Weekly sessions open after a good trial.");
+    const [existingTrial] = await orm
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(and(eq(sessions.enrollmentId, context.enrollment.id), eq(sessions.isTrial, true), ne(sessions.status, "cancelled")));
+    if (existingTrial) throw new BookingError("The trial session is already booked.");
+  }
 
   // Work in Eastern date + clock time, so weekly repeats survive daylight saving.
   const firstDate = easternDate(input.startsAt);
@@ -260,6 +277,7 @@ export async function bookSessions(
         priceCents: Math.round((context.enrollment.rateCents * SESSION_MINUTES) / 60),
         bookedBy: user.id,
         seriesId,
+        isTrial,
       })),
     );
   } catch (problem) {
@@ -443,8 +461,9 @@ export async function listVisibleSessions(user: SignedInUser, now: Date): Promis
         .where(inArray(tutors.id, tutorIds))
     : [];
 
-  return rows.map(({ taughtBy, ...row }) => ({
-    ...row,
-    tutorName: names.find((name) => name.id === taughtBy)?.name ?? "Your tutor",
-  }));
+  // Families see tutors as "first name + last initial" (spec, "Tutor profiles").
+  return rows.map(({ taughtBy, ...row }) => {
+    const fullName = names.find((name) => name.id === taughtBy)?.name;
+    return { ...row, tutorName: fullName ? publicTutorName(fullName) : "Your tutor" };
+  });
 }
