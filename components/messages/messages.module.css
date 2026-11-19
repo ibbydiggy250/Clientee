@@ -80,23 +80,6 @@
   rotate: -8deg;
 }
 
-/* The "Messages" link on home screens, with its circled count */
-.messagesLink { display: inline-flex; align-items: center; gap: 0.6rem; justify-self: start; }
-.unreadInline {
-  display: grid;
-  place-items: center;
-  min-width: 1.6rem;
-  height: 1.6rem;
-  padding: 0 0.3rem;
-  border: 2px solid var(--pen);
-  border-radius: 50% 45% 55% 48%;
-  color: var(--pen);
-  font-family: var(--font-hand), cursive;
-  font-size: 1.05rem;
-  font-weight: 700;
-  rotate: -8deg;
-}
-
 /* ---------- The conversation ---------- */
 
 .threadPane {
