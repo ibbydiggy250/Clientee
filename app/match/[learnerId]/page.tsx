@@ -9,14 +9,14 @@
 import Link from "next/link";
 
 import matching from "@/components/matching/matching.module.css";
-import { PaperPage, PenCircle } from "@/components/paper/PaperPage";
+import { PortalShell } from "@/components/desk/PortalShell";
+import { PenCircle } from "@/components/paper/PaperPage";
 import paper from "@/components/paper/paper.module.css";
 import { requireProfile } from "@/lib/auth/current-user";
 import { formatSessionTime } from "@/lib/eastern-time";
 import { getLearnerMatchPage, MatchingError, type LearnerMatchPage, type TutorCard } from "@/lib/matching";
 import { levelLabel } from "@/lib/matching-options";
 
-import { SignOutButton } from "../../home/SignOutButton";
 import { askForAnotherAction } from "../actions";
 import { RequestButton, TrialResultButtons } from "./MatchButtons";
 import { SearchForm } from "./SearchForm";
@@ -69,7 +69,7 @@ function RequestStatus({ request }: { request: LearnerMatchPage["requests"][numb
 
 export default async function FindTutorPage({ params }: { params: Promise<{ learnerId: string }> }) {
   const { learnerId } = await params;
-  const { user } = await requireProfile();
+  const { user, profile } = await requireProfile();
 
   let page: LearnerMatchPage;
   try {
@@ -77,13 +77,13 @@ export default async function FindTutorPage({ params }: { params: Promise<{ lear
   } catch (problem) {
     if (!(problem instanceof MatchingError)) throw problem;
     return (
-      <PaperPage action={<SignOutButton />}>
+      <PortalShell user={user} profile={profile}>
         <div className={`${paper.sheet} ${paper.narrow}`}>
           <p className={paper.note}>hmm —</p>
           <h1 className={`${paper.title} ${paper.titleSmall}`}>{problem.message}</h1>
-          <Link className={paper.link} href="/home">← Back home</Link>
+          <Link className={paper.link} href="/learners">Go to your learners</Link>
         </div>
-      </PaperPage>
+      </PortalShell>
     );
   }
 
@@ -94,7 +94,7 @@ export default async function FindTutorPage({ params }: { params: Promise<{ lear
   const knownSubjects = [...new Set([...page.learnerSubjects, ...page.requests.map((request) => request.subject)])];
 
   return (
-    <PaperPage action={<SignOutButton />}>
+    <PortalShell user={user} profile={profile}>
       <div className={paper.sheet}>
         <p className={paper.note}>matching · {firstName.toLowerCase()}</p>
         <h1 className={`${paper.title} ${paper.titleSmall}`}>
@@ -163,9 +163,7 @@ export default async function FindTutorPage({ params }: { params: Promise<{ lear
             <SearchForm learnerId={learnerId} learnerName={page.learnerName} knownSubjects={knownSubjects} saved={page.preferences} />
           </section>
         )}
-
-        <Link className={paper.link} href="/home">← Back home</Link>
       </div>
-    </PaperPage>
+    </PortalShell>
   );
 }

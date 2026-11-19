@@ -2,18 +2,17 @@
  * Clientee: the tutor's public profile — what families see on suggestion
  * cards. Bio and video edits go live after TutorMe approves them.
  */
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { PortalShell } from "@/components/desk/PortalShell";
 import matching from "@/components/matching/matching.module.css";
-import { PaperPage, PenCircle } from "@/components/paper/PaperPage";
+import { PenCircle } from "@/components/paper/PaperPage";
 import paper from "@/components/paper/paper.module.css";
 import { requireProfile } from "@/lib/auth/current-user";
 import { levelLabel } from "@/lib/matching-options";
 import { publicTutorName } from "@/lib/public-name";
 import { getMyPublicProfile } from "@/lib/tutor-profile";
 
-import { SignOutButton } from "../home/SignOutButton";
 import { ProfileDraftForm } from "./ProfileDraftForm";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +25,7 @@ export default async function TutorProfilePage() {
   const name = publicTutorName(profile.name);
 
   return (
-    <PaperPage action={<SignOutButton />}>
+    <PortalShell user={user} profile={profile}>
       <div className={paper.sheet}>
         <p className={paper.note}>clientee · this is what families see</p>
         <h1 className={`${paper.title} ${paper.titleSmall}`}>
@@ -59,8 +58,7 @@ export default async function TutorProfilePage() {
           </div>
         </div>
 
-        <Link className={paper.link} href="/home">← Back to Clientee</Link>
       </div>
-    </PaperPage>
+    </PortalShell>
   );
 }

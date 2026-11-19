@@ -16,10 +16,10 @@ export function RespondButtons({ requestId }: { requestId: string }) {
   return (
     <form action={formAction} className={paper.row}>
       <input type="hidden" name="requestId" value={requestId} />
-      <button type="submit" name="decision" value="accept" className={paper.primary} disabled={isSaving}>
+      <button type="submit" name="decision" value="accept" className={`${paper.primary} ${paper.compact}`} disabled={isSaving}>
         Accept
       </button>
-      <button type="submit" name="decision" value="decline" className={paper.secondary} disabled={isSaving}>
+      <button type="submit" name="decision" value="decline" className={`${paper.secondary} ${paper.compact}`} disabled={isSaving}>
         Decline
       </button>
       {state.error && <p role="alert" className={paper.error}>{state.error}</p>}

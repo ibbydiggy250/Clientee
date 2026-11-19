@@ -18,7 +18,7 @@ export function CancelButton({ sessionId, willBeCharged }: { sessionId: string; 
 
   if (!isConfirming) {
     return (
-      <button type="button" className={paper.secondary} onClick={() => setIsConfirming(true)}>
+      <button type="button" className={`${paper.secondary} ${paper.compact}`} onClick={() => setIsConfirming(true)}>
         Cancel
       </button>
     );
@@ -28,7 +28,7 @@ export function CancelButton({ sessionId, willBeCharged }: { sessionId: string; 
     <form action={formAction} className={paper.row}>
       <input type="hidden" name="sessionId" value={sessionId} />
       {willBeCharged && <span className={paper.note}>under 24h — this will be charged</span>}
-      <button type="submit" className={paper.primary} disabled={isSaving}>
+      <button type="submit" className={`${paper.primary} ${paper.compact}`} disabled={isSaving}>
         {isSaving ? "Cancelling…" : "Yes, cancel"}
       </button>
       <button type="button" className={paper.link} onClick={() => setIsConfirming(false)}>

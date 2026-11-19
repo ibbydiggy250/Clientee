@@ -47,7 +47,7 @@ function SessionRow({ item, viewer, now }: { item: SessionListItem; viewer: View
         <span className={`${paper.heading} ${item.status === "cancelled" ? booking.struck : ""}`}>{item.subject}</span>
         <span>{who}</span>
         <span className={booking.small}>
-          {formatSessionTime(item.startsAt)} ET · {STATUS_WORDS[item.status]}
+          <span className={booking.when}>{formatSessionTime(item.startsAt)} ET</span> · {STATUS_WORDS[item.status]}
           {item.cancelledLate && " (late — charged)"}
         </span>
       </div>
@@ -59,7 +59,7 @@ function SessionRow({ item, viewer, now }: { item: SessionListItem; viewer: View
               (isLateNow ? (
                 <span className={booking.small}>Too close to move</span>
               ) : (
-                <Link className={paper.secondary} href={`/book/move/${item.id}`}>
+                <Link className={`${paper.secondary} ${paper.compact}`} href={`/book/move/${item.id}`}>
                   Move
                 </Link>
               ))}

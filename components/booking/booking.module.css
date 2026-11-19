@@ -172,7 +172,17 @@
 .calendarDay { font-family: var(--font-display), serif; font-size: 1.9rem; font-weight: 600; }
 .calendarTime { font-size: 0.75rem; color: var(--ink-soft); }
 
-.sessionActions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
+.sessionActions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; align-items: center; }
+/* On wide screens a row's buttons stay side by side */
+@media (min-width: 641px) {
+  .sessionActions { flex-wrap: nowrap; }
+}
+/* When rows stack (narrow screens), buttons sit under the text on the left */
+@media (max-width: 760px) {
+  .sessionActions { justify-content: flex-start; }
+}
+/* Dates and times never break in the middle ("3:00 / PM") */
+.when { white-space: nowrap; }
 .small { font-size: 0.875rem; color: var(--ink-soft); }
 .struck { text-decoration: line-through; text-decoration-color: var(--pen); text-decoration-thickness: 2px; }
 

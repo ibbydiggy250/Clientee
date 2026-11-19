@@ -5,125 +5,25 @@
  * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
  */
 
-/* ---------- Header: the rubber stamp and the tabs ---------- */
-
-.stamp {
-  display: inline-block;
-  padding: 0.25rem 0.7rem 0.2rem;
-  border: 3px double var(--pen);
-  border-radius: 4px;
-  color: var(--pen);
-  font-family: var(--font-display), serif;
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  rotate: -6deg;
-  opacity: 0.9;
-  animation: thump 0.45s 0.1s cubic-bezier(0.3, 1.6, 0.5, 1) both;
-}
-@keyframes thump {
-  from { opacity: 0; transform: scale(1.8); }
-}
-
-.tabs {
-  display: flex;
-  gap: 0.35rem;
-  padding: 0 clamp(1rem, 8vw, 7rem);
-  border-bottom: 2px solid var(--ink);
-}
-.tab {
-  position: relative;
-  top: 2px;
-  min-height: 2.75rem;
-  padding: 0.65rem 1.25rem 0.55rem;
-  border: 2px solid var(--ink);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  background: rgb(27 35 64 / 0.06);
-  font-weight: 600;
-  transition: background 0.2s, transform 0.2s;
-}
-.tab:hover { background: rgb(27 35 64 / 0.12); transform: translateY(-2px); }
-.tab[aria-current="page"] {
-  background: var(--paper);
-  border-bottom: 2px solid var(--paper);
-  transform: none;
-}
-
-/* ---------- Sticky-note counts ---------- */
-
-.notes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: 1.25rem;
-}
-.sticky {
-  display: grid;
-  gap: 0.15rem;
-  padding: 1.1rem 1.2rem 1.3rem;
-  background: #fde88a;
-  box-shadow: 0 10px 18px -12px rgb(27 35 64 / 0.55);
-  clip-path: polygon(0 0, 100% 0, 100% 88%, 92% 100%, 0 100%);
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.sticky:nth-child(2) { background: #ffc9b8; }
-.sticky:nth-child(3) { background: #c8ecd8; }
-.sticky:nth-child(4) { background: #cfdcff; }
-.sticky:hover { transform: translateY(-3px) rotate(-1deg); }
-.stickyNumber {
-  font-family: var(--font-display), serif;
-  font-size: 2.75rem;
-  font-weight: 600;
-  line-height: 1;
-}
-.stickyLabel { font-family: var(--font-hand), cursive; font-size: 1.35rem; line-height: 1.1; }
-
-/* ---------- Ledger rows (a gradebook, not a spreadsheet) ---------- */
-
-.ledger { display: grid; }
-.ledgerHead,
-.ledgerRow {
-  display: grid;
-  grid-template-columns: var(--columns);
-  gap: 1rem;
-  align-items: start;
-  padding: 0.9rem 0.25rem;
-}
-.ledgerHead {
-  border-bottom: 2px solid var(--ink);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.ledgerRow {
-  border-bottom: 1px solid rgb(27 35 64 / 0.15);
-  transition: background 0.2s;
-}
-.ledgerRow:hover { background: rgb(255 253 248 / 0.7); }
-@media (max-width: 760px) {
-  .ledgerHead { display: none; }
-  .ledgerRow { grid-template-columns: 1fr; gap: 0.4rem; }
-}
-
-.name {
-  font-family: var(--font-display), serif;
-  font-size: 1.3rem;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-.small { font-size: 0.875rem; color: var(--ink-soft); }
-.money { font-variant-numeric: tabular-nums; font-weight: 600; }
-
-/* Handwritten warning in the margin, e.g. "term ends in 9 days" */
-.margin {
-  font-family: var(--font-hand), cursive;
-  color: var(--pen);
-  font-size: 1.25rem;
-  line-height: 1.1;
-}
+/*
+ * The stamp, tabs, sticky notes, ledger rows and margin notes now live in
+ * components/desk/desk.module.css, shared with Clientee and the family desk.
+ * These names compose them, so the admin pages' markup is unchanged.
+ */
+.stamp { composes: stamp from "../../components/desk/desk.module.css"; }
+.tabs { composes: tabs from "../../components/desk/desk.module.css"; }
+.tab { composes: tab from "../../components/desk/desk.module.css"; }
+.notes { composes: notes from "../../components/desk/desk.module.css"; }
+.sticky { composes: sticky from "../../components/desk/desk.module.css"; }
+.stickyNumber { composes: stickyNumber from "../../components/desk/desk.module.css"; }
+.stickyLabel { composes: stickyLabel from "../../components/desk/desk.module.css"; }
+.ledger { composes: ledger from "../../components/desk/desk.module.css"; }
+.ledgerHead { composes: ledgerHead from "../../components/desk/desk.module.css"; }
+.ledgerRow { composes: ledgerRow from "../../components/desk/desk.module.css"; }
+.name { composes: name from "../../components/desk/desk.module.css"; }
+.small { composes: small from "../../components/desk/desk.module.css"; }
+.money { composes: money from "../../components/desk/desk.module.css"; }
+.margin { composes: margin from "../../components/desk/desk.module.css"; }
 
 /* A <details> row that opens a form underneath */
 .drawer > summary {

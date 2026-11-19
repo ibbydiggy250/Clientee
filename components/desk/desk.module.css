@@ -1,0 +1,287 @@
+/*
+ * "The desk" — the shared frame for every signed-in area (admin console,
+ * Clientee for tutors, the family desk). Margin Notes paper plus:
+ * a rubber stamp naming the area, notebook tabs, sticky-note counts,
+ * gradebook-style ledger rows, a "next up" ticket and a to-do list.
+ * Moved here from app/admin/admin.module.css so all three areas match;
+ * admin's class names still work (they compose these).
+ * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
+ */
+
+/* ---------- Header: the rubber stamp and the tabs ---------- */
+
+.stamp {
+  display: inline-block;
+  padding: 0.25rem 0.7rem 0.2rem;
+  border: 3px double var(--pen);
+  border-radius: 4px;
+  color: var(--pen);
+  font-family: var(--font-display), serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  rotate: -6deg;
+  opacity: 0.9;
+  animation: thump 0.45s 0.1s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+/* Each area stamps in its own ink */
+.stampTutor { border-color: #2f7d4f; color: #2f7d4f; }
+.stampFamily { border-color: #1b2340; color: #1b2340; }
+@keyframes thump {
+  from { opacity: 0; transform: scale(1.8); }
+}
+
+.tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0 clamp(1rem, 8vw, 7rem);
+  border-bottom: 2px solid var(--ink);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab {
+  position: relative;
+  top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: none;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.25rem 0.55rem;
+  border: 2px solid var(--ink);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: rgb(27 35 64 / 0.06);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.2s;
+}
+.tab:hover { background: rgb(27 35 64 / 0.12); transform: translateY(-2px); }
+.tab:focus-visible { outline: 2px dashed var(--pen); outline-offset: 2px; }
+.tab[aria-current="page"] {
+  background: var(--paper);
+  border-bottom: 2px solid var(--paper);
+  transform: none;
+}
+/* An unread count on a tab, circled in red pen */
+.tabCount {
+  display: grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.25rem;
+  border: 2px solid var(--pen);
+  border-radius: 50% 45% 55% 48%;
+  color: var(--pen);
+  font-family: var(--font-hand), cursive;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  rotate: -8deg;
+}
+
+/* ---------- Sticky-note counts ---------- */
+
+.notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 1rem;
+}
+.sticky {
+  display: grid;
+  align-content: start;
+  gap: 0.15rem;
+  padding: 1.1rem 1.2rem 1.3rem;
+  background: #fde88a;
+  box-shadow: 0 10px 18px -12px rgb(27 35 64 / 0.55);
+  clip-path: polygon(0 0, 100% 0, 100% 88%, 92% 100%, 0 100%);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.sticky:nth-child(2) { background: #ffc9b8; }
+.sticky:nth-child(3) { background: #c8ecd8; }
+.sticky:nth-child(4) { background: #cfdcff; }
+.sticky:hover { transform: translateY(-3px) rotate(-1deg); }
+/* A sticky note that is a link */
+a.sticky:focus-visible { outline: 2px dashed var(--pen); outline-offset: 4px; }
+.stickyNumber {
+  font-family: var(--font-display), serif;
+  font-size: 2.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.stickyLabel { font-family: var(--font-hand), cursive; font-size: 1.35rem; line-height: 1.1; }
+
+/* ---------- Ledger rows (a gradebook, not a spreadsheet) ---------- */
+
+.ledger { display: grid; }
+.ledgerHead,
+.ledgerRow {
+  display: grid;
+  grid-template-columns: var(--columns);
+  gap: 1rem;
+  align-items: start;
+  padding: 0.9rem 0.25rem;
+}
+.ledgerHead {
+  border-bottom: 2px solid var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.ledgerRow {
+  border-bottom: 1px solid rgb(27 35 64 / 0.15);
+  transition: background 0.2s;
+}
+.ledgerRow:hover { background: rgb(255 253 248 / 0.7); }
+@media (max-width: 760px) {
+  .ledgerHead { display: none; }
+  .ledgerRow { grid-template-columns: 1fr; gap: 0.4rem; }
+}
+
+.name {
+  font-family: var(--font-display), serif;
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.small { font-size: 0.875rem; color: var(--ink-soft); }
+.money { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* Handwritten warning in the margin, e.g. "term ends in 9 days" */
+.margin {
+  font-family: var(--font-hand), cursive;
+  color: var(--pen);
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+/* ---------- Page heading for desk pages (smaller than the big landing titles) ---------- */
+
+.pageHead { display: grid; gap: 0.35rem; }
+.pageTitle {
+  font-family: var(--font-display), serif;
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* A section heading with its one action on the right */
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+/* One line inside a card: text on the left, its one action on the right */
+.lineItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.55rem 0;
+  border-top: 1px dashed rgb(27 35 64 / 0.2);
+}
+
+/* ---------- "Next up": the next session as a big ticket ---------- */
+
+.ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1.25rem 1.75rem;
+  align-items: center;
+  padding: 1.5rem 1.75rem;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 6px 6px 0 var(--pen);
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* the punched notches of a ticket */
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 1.3rem;
+  height: 1.3rem;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: var(--paper);
+}
+.ticket::before { left: -0.65rem; }
+.ticket::after { right: -0.65rem; }
+@media (max-width: 640px) {
+  .ticket { grid-template-columns: 1fr; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+}
+.ticketDate {
+  display: grid;
+  justify-items: center;
+  min-width: 5.5rem;
+  padding: 0.5rem 0.75rem;
+  border-right: 2px dashed rgb(246 240 228 / 0.35);
+  line-height: 1.05;
+}
+@media (max-width: 640px) {
+  .ticketDate { justify-items: start; border-right: none; padding: 0; }
+}
+.ticketDay { font-family: var(--font-display), serif; font-size: 2.5rem; font-weight: 600; }
+.ticketMonth { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #ffc9b8; }
+.ticketLabel { font-family: var(--font-hand), cursive; font-size: 1.3rem; color: #ffc9b8; }
+.ticketTitle { font-family: var(--font-display), serif; font-size: 1.6rem; font-weight: 500; }
+.ticketMeta { font-size: 0.9rem; opacity: 0.8; }
+.nowrap { white-space: nowrap; }
+.ticketLink {
+  justify-self: start;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--paper);
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+.ticketLink:hover { background: var(--paper); color: var(--ink); }
+
+/* ---------- "Needs you": a to-do list with hand-drawn boxes ---------- */
+
+.todo { display: grid; gap: 0.5rem; }
+.todoItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  background: var(--card);
+  box-shadow: 0 1px 0 rgb(27 35 64 / 0.08), 0 8px 16px -14px rgb(27 35 64 / 0.5);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.todoItem:hover { transform: translateX(4px); }
+@media (max-width: 560px) {
+  .todoItem { grid-template-columns: auto 1fr; }
+  .todoItem > :last-child { grid-column: 1 / -1; }
+}
+/* an empty checkbox, drawn in pen */
+.todoBox {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid var(--pen);
+  border-radius: 3px 5px 3px 4px;
+  rotate: -4deg;
+}
+.todoText { display: grid; gap: 0.1rem; }
+.todoTitle { font-weight: 600; }
+.allClear { font-family: var(--font-hand), cursive; font-size: 1.4rem; color: #2f7d4f; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp, .ticket { animation: none; }
+}

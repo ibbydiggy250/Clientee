@@ -258,6 +258,20 @@
 .secondary:hover { background: rgb(27 35 64 / 0.06); transform: translateY(-1px); }
 .secondary:active { transform: translateY(0); }
 
+/*
+ * Compact size for buttons inside list rows (sessions, requests), so a row
+ * stays one tidy line. Add next to .primary or .secondary.
+ */
+.compact {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.primary.compact { box-shadow: 3px 3px 0 var(--pen); }
+.primary.compact:hover:not(:disabled) { box-shadow: 4px 4px 0 var(--pen); }
+.primary.compact:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--pen); }
+
 /* ---------- Form fields: write on the line ---------- */
 
 .fields { display: grid; gap: 1.5rem; }

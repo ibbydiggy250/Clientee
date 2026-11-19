@@ -2,17 +2,16 @@
  * Clientee: the tutor's weekly hours. Families book 60-minute sessions inside
  * these windows. Shown as a week of day pages with washi-tape strips.
  */
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import booking from "@/components/booking/booking.module.css";
-import { PaperPage, PenCircle } from "@/components/paper/PaperPage";
+import { PortalShell } from "@/components/desk/PortalShell";
+import { PenCircle } from "@/components/paper/PaperPage";
 import paper from "@/components/paper/paper.module.css";
 import { requireProfile } from "@/lib/auth/current-user";
 import { getMyHours } from "@/lib/availability";
 import { formatClock, formatClockRange, WEEKDAY_NAMES } from "@/lib/eastern-time";
 
-import { SignOutButton } from "../home/SignOutButton";
 import { removeHoursAction } from "../sessions/actions";
 import { AddHoursForm } from "./AddHoursForm";
 
@@ -27,7 +26,7 @@ export default async function AvailabilityPage() {
   const hours = await getMyHours(user);
 
   return (
-    <PaperPage action={<SignOutButton />}>
+    <PortalShell user={user} profile={profile}>
       <div className={paper.sheet}>
         <p className={paper.note}>clientee · when can families book you?</p>
         <h1 className={`${paper.title} ${paper.titleSmall}`}>
@@ -72,10 +71,7 @@ export default async function AvailabilityPage() {
           <AddHoursForm />
         </section>
 
-        <Link className={paper.link} href="/home">
-          ← Back to your learners
-        </Link>
       </div>
-    </PaperPage>
+    </PortalShell>
   );
 }

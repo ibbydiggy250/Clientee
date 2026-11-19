@@ -82,7 +82,7 @@ export async function bookAction(_previous: SessionFormState, form: FormData): P
     message = count === 1 ? "booked=1" : `booked=${count}&skipped=${booked.skippedDates.length}`;
   });
   if (result.error) return result;
-  redirect(`/home?${message}`);
+  redirect(`/sessions?${message}`);
 }
 
 const rescheduleSchema = z.object({ sessionId: z.uuid(), startsAt: z.iso.datetime("Pick a new time first") });
@@ -94,7 +94,7 @@ export async function rescheduleAction(_previous: SessionFormState, form: FormDa
 
   const result = await attempt(() => rescheduleSession(user, input.data.sessionId, new Date(input.data.startsAt), new Date()));
   if (result.error) return result;
-  redirect("/home?moved=1");
+  redirect("/sessions?moved=1");
 }
 
 // ---------- Cancelling and outcomes ----------
