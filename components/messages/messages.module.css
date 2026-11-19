@@ -1,0 +1,255 @@
+/*
+ * Messages — "passing notes in class", in the Margin Notes look.
+ * Your notes are ink-blue on the right; theirs are taped paper on the left.
+ * Held notes wear a red "HELD FOR REVIEW" stamp. The thread list is a stack
+ * of index cards with unread counts circled in red pen.
+ * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
+ */
+
+/* ---------- Layout: list + conversation ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(15rem, 20rem) 1fr;
+  gap: 1.75rem;
+  align-items: start;
+  max-width: 80rem;
+  margin: clamp(1rem, 4vh, 2.5rem) auto 0;
+  /* Same side padding as the other pages, so nothing sits on the red margin line */
+  padding: 0 clamp(1rem, 8vw, 7rem) 3rem;
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  /* On phones, an open conversation takes the whole screen. */
+  .layout:has(.threadPane) .listPane { display: none; }
+}
+@media (min-width: 861px) {
+  .backToList { display: none; }
+}
+
+/* ---------- The thread list: index cards ---------- */
+
+.listPane { display: grid; gap: 0.75rem; }
+.listTitle {
+  font-family: var(--font-display), serif;
+  font-size: 2rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.threadCard {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.9rem 3rem 0.9rem 1rem;
+  border-left: 5px solid transparent;
+  border-radius: 4px;
+  background: var(--card);
+  box-shadow: 0 1px 0 rgb(27 35 64 / 0.08), 0 10px 20px -16px rgb(27 35 64 / 0.5);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
+}
+.threadCard:hover { transform: translateX(4px); border-left-color: rgb(224 65 43 / 0.4); }
+.threadCard[aria-current="page"] { border-left-color: var(--pen); transform: translateX(6px); }
+.threadCard:focus-visible { outline: 2px dashed var(--pen); outline-offset: 3px; }
+.threadTitle { font-family: var(--font-display), serif; font-size: 1.15rem; font-weight: 500; }
+.threadSubtitle { font-size: 0.8rem; color: var(--ink-soft); }
+.threadPreview {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Unread count, circled in red pen */
+.unread {
+  position: absolute;
+  top: 50%;
+  right: 0.9rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding: 0 0.35rem;
+  translate: 0 -50%;
+  border: 2px solid var(--pen);
+  border-radius: 50% 45% 55% 48%;
+  color: var(--pen);
+  font-family: var(--font-hand), cursive;
+  font-size: 1.15rem;
+  font-weight: 700;
+  rotate: -8deg;
+}
+
+/* The "Messages" link on home screens, with its circled count */
+.messagesLink { display: inline-flex; align-items: center; gap: 0.6rem; justify-self: start; }
+.unreadInline {
+  display: grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.3rem;
+  border: 2px solid var(--pen);
+  border-radius: 50% 45% 55% 48%;
+  color: var(--pen);
+  font-family: var(--font-hand), cursive;
+  font-size: 1.05rem;
+  font-weight: 700;
+  rotate: -8deg;
+}
+
+/* ---------- The conversation ---------- */
+
+.threadPane {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1rem;
+  min-height: min(70vh, 44rem);
+  padding: 1.25rem clamp(1rem, 3vw, 1.75rem);
+  border-radius: 8px;
+  background: rgb(255 253 248 / 0.55);
+  box-shadow: inset 0 0 0 1.5px rgb(27 35 64 / 0.12);
+}
+.threadHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--ink);
+}
+.threadHeading { font-family: var(--font-display), serif; font-size: 1.75rem; font-weight: 500; letter-spacing: -0.02em; }
+
+/* A small "live" dot that breathes while polling */
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.live::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #2f7d4f;
+  animation: breathe 2.4s ease-in-out infinite;
+}
+.live[data-status="paused"]::before { background: rgb(27 35 64 / 0.3); animation: none; }
+.live[data-status="error"]::before { background: var(--pen); animation: none; }
+@keyframes breathe {
+  50% { box-shadow: 0 0 0 0.35rem rgb(47 125 79 / 0.15); }
+}
+
+.messageList {
+  display: grid;
+  align-content: start;
+  gap: 0.85rem;
+  max-height: min(58vh, 36rem);
+  overflow-y: auto;
+  padding: 0.5rem 0.25rem;
+  scroll-behavior: smooth;
+}
+.emptyThread {
+  align-self: center;
+  justify-self: center;
+  font-family: var(--font-hand), cursive;
+  font-size: 1.5rem;
+  color: var(--pen);
+}
+
+/* One note */
+.note {
+  position: relative;
+  display: grid;
+  gap: 0.3rem;
+  max-width: min(32rem, 88%);
+  padding: 0.75rem 1rem 0.65rem;
+  border-radius: 4px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+}
+.theirs {
+  justify-self: start;
+  background: var(--card);
+  box-shadow: 0 1px 0 rgb(27 35 64 / 0.08), 0 10px 18px -14px rgb(27 35 64 / 0.55);
+}
+/* a strip of tape on their notes */
+.theirs::before {
+  content: "";
+  position: absolute;
+  top: -0.55rem;
+  left: 1.25rem;
+  width: 3.25rem;
+  height: 1rem;
+  background: var(--tape);
+  clip-path: polygon(4% 0, 96% 8%, 100% 92%, 0 100%);
+}
+.mine {
+  justify-self: end;
+  background: var(--ink);
+  color: var(--paper);
+  border-bottom-right-radius: 0;
+  box-shadow: 4px 4px 0 var(--pen);
+}
+.noteMeta { font-size: 0.72rem; opacity: 0.7; }
+/* Your notes sit on the right, whatever their status */
+.alignEnd { justify-self: end; }
+
+/* Held for review: dashed edge and a red stamp */
+.held {
+  background: repeating-linear-gradient(-45deg, rgb(224 65 43 / 0.06) 0 10px, transparent 10px 20px), var(--card);
+  color: var(--ink);
+  border: 2px dashed var(--pen);
+  box-shadow: none;
+}
+.heldStamp {
+  justify-self: start;
+  padding: 0.1rem 0.5rem;
+  border: 2px double var(--pen);
+  border-radius: 3px;
+  color: var(--pen);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  rotate: -3deg;
+}
+.rejected { opacity: 0.6; text-decoration: line-through; text-decoration-color: var(--pen); }
+
+/* ---------- Writing a note ---------- */
+
+.composer { display: grid; gap: 0.6rem; }
+.composerInput {
+  width: 100%;
+  min-height: 4.5rem;
+  max-height: 12rem;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  resize: vertical;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--ink);
+  /* writing on lined paper */
+  background:
+    repeating-linear-gradient(transparent 0 calc(1.6em - 1px), rgb(27 35 64 / 0.1) calc(1.6em - 1px) 1.6em) 0 0.6rem / 100% 1.6em,
+    var(--card);
+}
+.composerInput:focus { outline: none; border-color: var(--pen); }
+.composerRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.composerHint { font-size: 0.8rem; color: var(--ink-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .note, .live::before { animation: none; }
+  .messageList { scroll-behavior: auto; }
+}

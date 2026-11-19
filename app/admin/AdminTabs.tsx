@@ -8,6 +8,7 @@ import styles from "./admin.module.css";
 const tabs = [
   { href: "/admin", label: "Intake & matching" },
   { href: "/admin/tutors", label: "Tutors" },
+  { href: "/admin/messages", label: "Messages" },
 ];
 
 /** Notebook-style tabs across the top of the admin console. */

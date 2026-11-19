@@ -14,6 +14,7 @@ import styles from "@/components/paper/paper.module.css";
 import { accounts, enrollments, invites, learners, profiles, tutors } from "@/db/schema";
 import { requireProfile } from "@/lib/auth/current-user";
 import { listVisibleSessions } from "@/lib/booking";
+import { countUnread } from "@/lib/messaging";
 import { withUser } from "@/lib/db";
 import { invitePath } from "@/lib/invites";
 import { siteOrigin } from "@/lib/site-origin";
@@ -21,6 +22,7 @@ import { siteOrigin } from "@/lib/site-origin";
 import { AddLearnerForm } from "./AddLearnerForm";
 import { CopyLink } from "./CopyLink";
 import { InviteLearnerForm } from "./InviteLearnerForm";
+import { MessagesLink } from "../messages/MessagesLink";
 import { SessionList } from "../sessions/SessionList";
 import { SignOutButton } from "./SignOutButton";
 import { TutorHome } from "./TutorHome";
@@ -101,6 +103,7 @@ export default async function HomePage({
 
   const now = new Date();
   const upcomingSessions = bookableMatches.length ? await listVisibleSessions(user, now) : [];
+  const unreadMessages = await countUnread(user);
   const { booked, skipped, moved } = await searchParams;
 
   const origin = await siteOrigin();
@@ -123,7 +126,7 @@ export default async function HomePage({
           Once TutorMe matches a learner with a tutor, you can book sessions right here. Sessions are 60 minutes, Eastern
           time, and free to cancel or move up to 24 hours before.
         </p>
-
+        <MessagesLink unread={unreadMessages} />
         {/* ---------- Just booked or moved ---------- */}
         {booked && (
           <p className={styles.note}>

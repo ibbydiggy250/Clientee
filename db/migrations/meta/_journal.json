@@ -71,6 +71,20 @@
       "when": 1794596336665,
       "tag": "0009_matching_access",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795068941243,
+      "tag": "0010_messaging_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795068948457,
+      "tag": "0011_messaging_access",
+      "breakpoints": true
     }
   ]
 }

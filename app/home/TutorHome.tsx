@@ -16,8 +16,10 @@ import { listVisibleSessions } from "@/lib/booking";
 import { withUser } from "@/lib/db";
 import { formatSessionTime } from "@/lib/eastern-time";
 import { getTutorRequests } from "@/lib/matching";
+import { countUnread } from "@/lib/messaging";
 
 import { RespondButtons } from "../match/RespondButtons";
+import { MessagesLink } from "../messages/MessagesLink";
 import { SessionList } from "../sessions/SessionList";
 
 function formatDate(isoDate: string | null): string {
@@ -62,6 +64,7 @@ export async function TutorHome({ profile }: { profile: Profile }) {
   const me = { id: profile.id, email: profile.email, name: profile.name };
   const sessionsToShow = await listVisibleSessions(me, now);
   const requests = await getTutorRequests(me, now);
+  const unreadMessages = await countUnread(me);
 
   const firstName = profile.name.split(" ")[0];
   const hasEnded = tutor?.status === "inactive";
@@ -106,9 +109,12 @@ export async function TutorHome({ profile }: { profile: Profile }) {
       )}
 
       {!hasEnded && (
-        <Link className={styles.link} href="/profile">
-          Your public profile (what families see) →
-        </Link>
+        <div className={styles.row}>
+          <MessagesLink unread={unreadMessages} />
+          <Link className={styles.link} href="/profile">
+            Your public profile (what families see) →
+          </Link>
+        </div>
       )}
 
       {!hasEnded && (

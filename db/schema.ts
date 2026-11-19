@@ -18,6 +18,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   smallint,
   text,
   time,
@@ -399,15 +400,42 @@ export const progressEntries = pgTable(
 // ---------------------------------------------------------------------------
 
 /**
+ * The three kinds of conversation (mvp-spec.md, "Messaging and anti-bypass"):
+ *   learner_tutor  — a learner (or, with no login, their account holder) and their tutor
+ *   family_tutorme — an account holder and TutorMe
+ *   tutor_tutorme  — a tutor and TutorMe
+ */
+export const threadKind = pgEnum("thread_kind", ["learner_tutor", "family_tutorme", "tutor_tutorme"]);
+
+/** delivered = everyone in the thread sees it; held = waiting for admin (contact filter); rejected = admin said no. */
+export const messageStatus = pgEnum("message_status", ["delivered", "held", "rejected"]);
+
+/**
  * A conversation. `learnerId` is set for learner ↔ tutor threads (so a
  * minor's account holder can read them) and empty for threads with TutorMe.
+ * "TutorMe" is any admin: admins can read every thread and reply in the
+ * TutorMe threads, so they are not listed as participants.
  */
-export const threads = pgTable("threads", {
-  id: id(),
-  learnerId: uuid("learner_id").references(() => learners.id),
-  participantIds: uuid("participant_ids").array().notNull(),
-  createdAt: createdAt(),
-});
+export const threads = pgTable(
+  "threads",
+  {
+    id: id(),
+    learnerId: uuid("learner_id").references(() => learners.id),
+    participantIds: uuid("participant_ids").array().notNull(),
+    kind: threadKind("kind").notNull().default("learner_tutor"),
+    tutorId: uuid("tutor_id").references(() => tutors.id), // learner_tutor and tutor_tutorme
+    accountId: uuid("account_id").references(() => accounts.id), // family_tutorme
+    createdAt: createdAt(),
+  },
+  (table) => [
+    // One thread per pair, so opening Messages twice never makes duplicates.
+    uniqueIndex("threads_one_per_learner_tutor")
+      .on(table.learnerId, table.tutorId)
+      .where(sql`kind = 'learner_tutor'`),
+    uniqueIndex("threads_one_per_account").on(table.accountId).where(sql`kind = 'family_tutorme'`),
+    uniqueIndex("threads_one_per_tutor").on(table.tutorId).where(sql`kind = 'tutor_tutorme'`),
+  ],
+);
 
 export const messages = pgTable(
   "messages",
@@ -422,9 +450,32 @@ export const messages = pgTable(
     body: text("body").notNull(),
     // Set by the contact filter (phone numbers, emails, social handles).
     flagged: boolean("flagged").notNull().default(false),
+    // Flagged messages are held until admin approves (decided Nov 19, 2026).
+    status: messageStatus("status").notNull().default("delivered"),
+    flagReason: text("flag_reason"), // e.g. "phone number, email"
+    reviewedBy: uuid("reviewed_by").references(() => profiles.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (table) => [index("messages_thread_idx").on(table.threadId, table.createdAt)],
+  (table) => [
+    index("messages_thread_idx").on(table.threadId, table.createdAt),
+    index("messages_held_idx").on(table.status),
+  ],
+);
+
+/** When each person last read each thread, for unread counts. */
+export const threadReads = pgTable(
+  "thread_reads",
+  {
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => threads.id),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id),
+    lastReadAt: timestamp("last_read_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.threadId, table.profileId] })],
 );
 
 // ---------------------------------------------------------------------------

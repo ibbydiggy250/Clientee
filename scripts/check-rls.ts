@@ -149,6 +149,11 @@ async function buildWorld() {
     "insert into messages (thread_id, sender_id, body) values ($1, $2, 'See you Tuesday')",
     [ids.thread, people.tutorActive],
   );
+  // A message the contact filter held: only its sender (and admin) may see it.
+  await client.query(
+    "insert into messages (thread_id, sender_id, body, status, flagged) values ($1, $2, 'text me 555-123-4567', 'held', true)",
+    [ids.thread, people.tutorActive],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -205,14 +210,18 @@ async function runChecks() {
       [ids.thread, people.parentA],
     ),
   );
+  // Since migration 0011 every message goes through server code (lib/messaging.ts),
+  // so the contact filter can't be skipped by writing to the table directly.
   check(
-    "The tutor can post in their own thread",
-    !(await isRefused(
+    "Even the tutor can't insert a message directly (server code only)",
+    await isRefused(
       people.tutorActive,
       "insert into messages (thread_id, sender_id, body) values ($1, $2, 'hi')",
       [ids.thread, people.tutorActive],
-    )),
+    ),
   );
+  check("A held message stays hidden from the other side", (await countVisible(people.parentA, "messages where status = 'held'")) === 0);
+  check("…but its sender can see it", (await countVisible(people.tutorActive, "messages where status = 'held'")) === 1);
   check(
     "Nobody can send a message as someone else",
     await isRefused(
