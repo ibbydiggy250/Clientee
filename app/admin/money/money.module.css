@@ -1,0 +1,63 @@
+/* Admin → Money. Builds on the desk styles (sticky notes, ledger). */
+
+/* A note taped to the page: "Stripe isn't connected yet" */
+.taped {
+  position: relative;
+  max-width: 40rem;
+  padding: 1.1rem 1.3rem;
+  background: #fffaf0;
+  border: 1.5px dashed rgb(27 35 64 / 0.3);
+  box-shadow: 0 8px 16px -12px rgb(27 35 64 / 0.5);
+  rotate: -0.6deg;
+  line-height: 1.5;
+}
+.taped strong { color: var(--pen); }
+/* the strip of tape */
+.taped::before {
+  content: "";
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  width: 5.5rem;
+  height: 1.3rem;
+  translate: -50% 0;
+  rotate: 3deg;
+  background: rgb(253 232 138 / 0.75);
+  box-shadow: 0 1px 2px rgb(27 35 64 / 0.15);
+}
+
+/* Dollar amounts are longer than counts, so the sticky numbers shrink a bit */
+.stickyMoney { font-size: clamp(1.7rem, 3.2vw, 2.4rem); white-space: nowrap; }
+
+/* One week of payouts */
+.week { display: grid; gap: 0.4rem; }
+.weekHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid var(--ink);
+}
+.weekTitle { font-family: var(--font-display), serif; font-size: 1.25rem; font-weight: 600; }
+
+/* Payment status, as a small inked chip */
+.chip {
+  justify-self: start;
+  padding: 0.1rem 0.55rem;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.chip_pending { color: #8a6a00; }
+.chip_succeeded { color: #2f7d4f; }
+.chip_failed { color: var(--pen); }
+.chip_refunded { color: rgb(27 35 64 / 0.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .taped { rotate: none; }
+}

@@ -10,7 +10,7 @@
  */
 import { and, eq, inArray } from "drizzle-orm";
 
-import { enrollments, profiles, sessions, tutors, accounts, learners } from "../db/schema";
+import { enrollments, payments, profiles, sessions, tutors, accounts, learners } from "../db/schema";
 import type { SignedInUser } from "../lib/auth/current-user";
 import { BookingError, cancelSession, findOpenSlots, isWithinLateWindow, recordOutcome } from "../lib/booking";
 import { db, orm } from "../lib/db";
@@ -132,7 +132,8 @@ async function part2WithDatabase() {
     check("The tutor can record a no-show after it ends", recorded.status === "no_show");
     check("An outcome can't be recorded twice", await isRefused(() => recordOutcome(tutor, finishedId, "completed", now)));
   } finally {
-    // Remove the two throwaway sessions again.
+    // Remove the two throwaway sessions again (and the charges they recorded).
+    await orm.delete(payments).where(inArray(payments.sessionId, [soonId, finishedId]));
     await orm.delete(sessions).where(and(inArray(sessions.id, [soonId, finishedId])));
   }
 }

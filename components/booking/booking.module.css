@@ -183,6 +183,14 @@
 }
 /* Dates and times never break in the middle ("3:00 / PM") */
 .when { white-space: nowrap; }
+/* Until Zoom is connected, upcoming sessions carry a pencilled note */
+.zoomSoon {
+  justify-self: start;
+  font-family: var(--font-hand), cursive;
+  font-size: 1.2rem;
+  color: var(--ink-soft);
+  rotate: -1.5deg;
+}
 .small { font-size: 0.875rem; color: var(--ink-soft); }
 .struck { text-decoration: line-through; text-decoration-color: var(--pen); text-decoration-thickness: 2px; }
 

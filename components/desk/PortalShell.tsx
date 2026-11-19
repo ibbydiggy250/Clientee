@@ -33,6 +33,7 @@ function tabsFor(role: Profile["role"], unread: number): DeskTab[] {
     return [
       { href: "/admin", label: "Intake & matching" },
       { href: "/admin/tutors", label: "Tutors" },
+      { href: "/admin/money", label: "Money" },
       { href: "/admin/messages", label: "Messages", alsoOn: ["/messages"] },
     ];
   }

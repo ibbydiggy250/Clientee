@@ -251,6 +251,26 @@ a.sticky:focus-visible { outline: 2px dashed var(--pen); outline-offset: 4px; }
 }
 .ticketLink:hover { background: var(--paper); color: var(--ink); }
 
+/* The ticket's right side: Join (or the "coming soon" note) above the link */
+.ticketSide { display: grid; gap: 0.6rem; justify-items: start; }
+.ticketJoin {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  background: var(--pen);
+  color: var(--paper);
+  font-weight: 700;
+  box-shadow: 3px 3px 0 rgb(246 240 228 / 0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.ticketJoin:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 rgb(246 240 228 / 0.35); }
+/* Until Zoom is connected: a pencilled note instead of a button */
+.ticketZoomSoon {
+  font-family: var(--font-hand), cursive;
+  font-size: 1.15rem;
+  color: #ffc9b8;
+  rotate: -2deg;
+}
+
 /* ---------- "Needs you": a to-do list with hand-drawn boxes ---------- */
 
 .todo { display: grid; gap: 0.5rem; }

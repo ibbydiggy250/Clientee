@@ -8,6 +8,7 @@ import styles from "./admin.module.css";
 const tabs = [
   { href: "/admin", label: "Intake & matching" },
   { href: "/admin/tutors", label: "Tutors" },
+  { href: "/admin/money", label: "Money" },
   { href: "/admin/messages", label: "Messages" },
 ];
 

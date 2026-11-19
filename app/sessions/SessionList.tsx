@@ -50,8 +50,14 @@ function SessionRow({ item, viewer, now }: { item: SessionListItem; viewer: View
           <span className={booking.when}>{formatSessionTime(item.startsAt)} ET</span> · {STATUS_WORDS[item.status]}
           {item.cancelledLate && " (late — charged)"}
         </span>
+        {isScheduled && !hasEnded && !item.zoomJoinUrl && <span className={booking.zoomSoon}>zoom link coming soon</span>}
       </div>
       <div className={booking.sessionActions}>
+        {isScheduled && !hasEnded && item.zoomJoinUrl && (
+          <a className={`${paper.primary} ${paper.compact}`} href={item.zoomJoinUrl} target="_blank" rel="noopener noreferrer">
+            Join ↗
+          </a>
+        )}
         {isScheduled && viewer === "tutor" && hasEnded && <OutcomeButtons sessionId={item.id} />}
         {isScheduled && !hasEnded && item.startsAt > now && (
           <>

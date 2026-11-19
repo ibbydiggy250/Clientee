@@ -12,7 +12,8 @@
     "db:check-admin": "tsx scripts/check-admin.ts",
     "db:check-booking": "tsx scripts/check-booking.ts",
     "db:check-matching": "tsx scripts/check-matching.ts",
-    "db:check-messaging": "tsx scripts/check-messaging.ts"
+    "db:check-messaging": "tsx scripts/check-messaging.ts",
+    "db:check-payments": "tsx scripts/check-payments.ts"
   },
   "dependencies": {
     "@neon/auth": "^0.8.2",

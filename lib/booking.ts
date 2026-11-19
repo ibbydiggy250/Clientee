@@ -11,6 +11,11 @@
  * Writes run as the database owner, so every function checks permissions
  * itself. Every function takes `now`, so the rules can be tested at any time.
  * The database also refuses double-booking on its own (migration 0007).
+ *
+ * Zoom and Stripe plug in here (both stand-ins until connected, Nov 19, 2026):
+ *   - booking / moving / cancelling call lib/zoom.ts to keep meetings in step;
+ *   - a charged outcome (completed, no-show, late cancel) calls
+ *     lib/payments.ts to record what's owed.
  */
 import { randomUUID } from "node:crypto";
 
@@ -21,7 +26,9 @@ import type { SignedInUser } from "@/lib/auth/current-user";
 import { orm, withUser } from "@/lib/db";
 import { hasPostgresCode } from "@/lib/db-errors";
 import { addDays, easternClock, easternDate, easternMoment, weekdayOf } from "@/lib/eastern-time";
+import { recordSessionCharge } from "@/lib/payments";
 import { publicTutorName } from "@/lib/public-name";
+import { addMeetingsToSessions, cancelMeeting, moveMeeting } from "@/lib/zoom";
 
 export const SESSION_MINUTES = 60;
 /** How far ahead a booking must be. */
@@ -267,8 +274,9 @@ export async function bookSessions(
   }
 
   const seriesId = bookedSlots.length > 1 ? randomUUID() : null;
+  let newSessions: { id: string }[];
   try {
-    await orm.insert(sessions).values(
+    newSessions = await orm.insert(sessions).values(
       bookedSlots.map((slot) => ({
         enrollmentId: context.enrollment.id,
         taughtBy: context.tutorId,
@@ -279,12 +287,15 @@ export async function bookSessions(
         seriesId,
         isTrial,
       })),
-    );
+    ).returning({ id: sessions.id });
   } catch (problem) {
     // Someone else booked one of these times a moment ago.
     if (hasPostgresCode(problem, "23P01")) throw new BookingError("That time was just taken. Pick another one.");
     throw problem;
   }
+
+  // Zoom: one meeting per session (does nothing until Zoom is connected).
+  await addMeetingsToSessions(newSessions.map((session) => session.id));
 
   return { bookedDates: bookedSlots.map((slot) => slot.date), skippedDates };
 }
@@ -332,6 +343,10 @@ export async function cancelSession(user: SignedInUser, sessionId: string, now: 
     .returning({ id: sessions.id });
   if (updated.length === 0) throw new BookingError("This session isn't scheduled any more.");
 
+  await cancelMeeting(sessionId);
+  // A late cancellation is charged like a completed session.
+  if (late) await recordSessionCharge(sessionId);
+
   return { late };
 }
 
@@ -368,6 +383,8 @@ export async function rescheduleSession(user: SignedInUser, sessionId: string, n
     if (hasPostgresCode(problem, "23P01")) throw new BookingError("That time was just taken. Pick another one.");
     throw problem;
   }
+
+  await moveMeeting(sessionId);
 }
 
 /** Open slots for moving a session (same tutor, ignoring the session itself). */
@@ -385,8 +402,8 @@ export async function getRescheduleSlots(user: SignedInUser, sessionId: string, 
 
 /**
  * The teaching tutor (or admin) records what happened, once the session is
- * over. "Completed" will trigger the charge when Stripe is added; "no_show"
- * is charged too, per the cancellation policy.
+ * over. "Completed" records the charge (lib/payments.ts; collected once
+ * Stripe is added); "no_show" is charged too, per the cancellation policy.
  */
 export async function recordOutcome(
   user: SignedInUser,
@@ -406,6 +423,9 @@ export async function recordOutcome(
     .where(and(eq(sessions.id, sessionId), eq(sessions.status, "scheduled")))
     .returning({ id: sessions.id });
   if (updated.length === 0) throw new BookingError("This session was already recorded or cancelled.");
+
+  // Both outcomes are charged (no-shows per the cancellation policy).
+  await recordSessionCharge(sessionId);
 }
 
 // ---------------------------------------------------------------------------
@@ -422,6 +442,8 @@ export type SessionListItem = {
   learnerName: string;
   tutorName: string;
   enrollmentId: string;
+  /** Null until Zoom is connected (or if creating the meeting failed). */
+  zoomJoinUrl: string | null;
 };
 
 /**
@@ -441,6 +463,7 @@ export async function listVisibleSessions(user: SignedInUser, now: Date): Promis
         subject: enrollments.subject,
         learnerName: learners.name,
         enrollmentId: sessions.enrollmentId,
+        zoomJoinUrl: sessions.zoomJoinUrl,
         taughtBy: sessions.taughtBy,
       })
       .from(sessions)

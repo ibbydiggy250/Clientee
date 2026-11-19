@@ -32,7 +32,17 @@ export function NextSessionTicket({ session, withWhom, href, linkLabel }: Props)
           <span className={styles.nowrap}>{part({ hour: "numeric", minute: "2-digit" })} ET</span> · {withWhom}
         </span>
       </div>
-      <Link className={styles.ticketLink} href={href}>{linkLabel}</Link>
+      <div className={styles.ticketSide}>
+        {/* Zoom: a Join button once the meeting exists, a quiet note until then */}
+        {session.zoomJoinUrl ? (
+          <a className={styles.ticketJoin} href={session.zoomJoinUrl} target="_blank" rel="noopener noreferrer">
+            Join on Zoom ↗
+          </a>
+        ) : (
+          <span className={styles.ticketZoomSoon}>zoom link coming soon</span>
+        )}
+        <Link className={styles.ticketLink} href={href}>{linkLabel}</Link>
+      </div>
     </article>
   );
 }
