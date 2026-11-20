@@ -1,0 +1,9 @@
+/* Clientee → Earnings. Everything else comes from the shared desk styles. */
+
+/* A paid week: a green inked check, the opposite of the red margin note */
+.paid {
+  justify-self: start;
+  font-family: var(--font-hand), cursive;
+  font-size: 1.3rem;
+  color: #2f7d4f;
+}

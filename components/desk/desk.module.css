@@ -64,6 +64,15 @@
   border-bottom: 2px solid var(--paper);
   transform: none;
 }
+/* Narrower screens: tighter tabs, so a 7-tab desk still fits on a tablet */
+@media (max-width: 900px) {
+  .tabs { gap: 0.25rem; padding: 0 1rem; }
+  .tab { padding: 0.6rem 0.8rem 0.5rem; font-size: 0.92rem; }
+}
+/* Phones: the row scrolls sideways, so fade the right edge as a hint */
+@media (max-width: 600px) {
+  .tabs { mask-image: linear-gradient(to right, black 85%, transparent); }
+}
 /* An unread count on a tab, circled in red pen */
 .tabCount {
   display: grid;
@@ -111,6 +120,8 @@ a.sticky:focus-visible { outline: 2px dashed var(--pen); outline-offset: 4px; }
   line-height: 1;
 }
 .stickyLabel { font-family: var(--font-hand), cursive; font-size: 1.35rem; line-height: 1.1; }
+/* Dollar amounts are longer than counts, so those sticky numbers shrink a bit */
+.stickyMoney { font-size: clamp(1.7rem, 3.2vw, 2.4rem); white-space: nowrap; }
 
 /* ---------- Ledger rows (a gradebook, not a spreadsheet) ---------- */
 
@@ -302,6 +313,35 @@ a.sticky:focus-visible { outline: 2px dashed var(--pen); outline-offset: 4px; }
 .todoTitle { font-weight: 600; }
 .allClear { font-family: var(--font-hand), cursive; font-size: 1.4rem; color: #2f7d4f; }
 
+/* ---------- Taped notes ---------- */
+
+/* A note taped to the page, e.g. "Stripe isn't connected yet" (Money, Earnings) */
+.tapedNote {
+  position: relative;
+  max-width: 40rem;
+  padding: 1.1rem 1.3rem;
+  background: #fffaf0;
+  border: 1.5px dashed rgb(27 35 64 / 0.3);
+  box-shadow: 0 8px 16px -12px rgb(27 35 64 / 0.5);
+  rotate: -0.6deg;
+  line-height: 1.5;
+}
+.tapedNote strong { color: var(--pen); }
+/* the strip of tape */
+.tapedNote::before {
+  content: "";
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  width: 5.5rem;
+  height: 1.3rem;
+  translate: -50% 0;
+  rotate: 3deg;
+  background: rgb(253 232 138 / 0.75);
+  box-shadow: 0 1px 2px rgb(27 35 64 / 0.15);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stamp, .ticket { animation: none; }
+  .tapedNote { rotate: none; }
 }

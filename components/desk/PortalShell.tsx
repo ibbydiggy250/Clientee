@@ -25,6 +25,7 @@ function tabsFor(role: Profile["role"], unread: number): DeskTab[] {
       { href: "/schedule", label: "Schedule" },
       { href: "/availability", label: "Hours" },
       { href: "/learners", label: "Learners" },
+      { href: "/earnings", label: "Earnings" },
       { href: "/messages", label: "Messages", count: unread },
       { href: "/profile", label: "Profile" },
     ];

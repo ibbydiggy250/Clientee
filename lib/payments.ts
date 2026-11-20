@@ -20,7 +20,7 @@
  * taken from the full price and TutorMe absorbs the card fee, as in the spec's
  * $60 → $45 / $15 example.
  */
-import { desc, eq, gte, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray } from "drizzle-orm";
 
 import { enrollments, learners, payments, payouts, profiles, sessions, tutors } from "@/db/schema";
 import { orm } from "@/lib/db";
@@ -127,8 +127,12 @@ export type PayoutWeek = { periodStart: string; tutors: TutorWeek[]; totalCents:
 
 const WEEKS_SHOWN = 8;
 
-/** Payments from the last few weeks, newest first. Admin only (uses `orm`). */
-export async function listRecentPayments(now: Date): Promise<PaymentLine[]> {
+/**
+ * Payments from the last few weeks, newest first. Uses `orm`, so callers
+ * check permissions: the admin Money tab passes no tutor; a tutor's Earnings
+ * tab passes their own `tutorId`, so they only ever see their own sessions.
+ */
+export async function listRecentPayments(now: Date, options: { tutorId?: string } = {}): Promise<PaymentLine[]> {
   const since = easternMoment(addDays(payoutWeekOf(now), -7 * (WEEKS_SHOWN - 1)), "00:00");
   const rows = await orm
     .select({
@@ -150,7 +154,11 @@ export async function listRecentPayments(now: Date): Promise<PaymentLine[]> {
     .innerJoin(learners, eq(learners.id, enrollments.learnerId))
     .innerJoin(tutors, eq(tutors.id, sessions.taughtBy))
     .innerJoin(profiles, eq(profiles.id, tutors.profileId))
-    .where(gte(sessions.startsAt, since))
+    .where(
+      options.tutorId
+        ? and(gte(sessions.startsAt, since), eq(sessions.taughtBy, options.tutorId))
+        : gte(sessions.startsAt, since),
+    )
     .orderBy(desc(sessions.startsAt));
 
   return rows.map((row) => ({ ...row, tutorCents: row.amountCents - row.platformFeeCents }));
@@ -199,4 +207,45 @@ export async function getWeeklyPayouts(lines: PaymentLine[]): Promise<PayoutWeek
 export async function countPendingPayments(): Promise<number> {
   const rows = await orm.select({ id: payments.id }).from(payments).where(eq(payments.status, "pending"));
   return rows.length;
+}
+
+// ---------------------------------------------------------------------------
+// A tutor's Earnings tab (their own share only, never the split)
+// ---------------------------------------------------------------------------
+
+export type TutorEarnings = {
+  /** False while Stripe isn't connected: earnings are tracked, not paid. */
+  stripeConnected: boolean;
+  thisWeekCents: number;
+  thisWeekSessions: number;
+  /** Earned in the weeks shown but not paid out yet. */
+  notPaidYetCents: number;
+  /** One entry per week with earnings, newest first. */
+  weeks: { periodStart: string; sessions: number; earnedCents: number; paidOut: boolean }[];
+  /** One line per charged session, newest first. */
+  lines: PaymentLine[];
+};
+
+/** The signed-in tutor's earnings, or null if they have no tutor row. */
+export async function getTutorEarnings(profileId: string, now: Date): Promise<TutorEarnings | null> {
+  const [tutor] = await orm.select({ id: tutors.id }).from(tutors).where(eq(tutors.profileId, profileId));
+  if (!tutor) return null;
+
+  const lines = (await listRecentPayments(now, { tutorId: tutor.id })).filter(
+    (line) => line.status === "pending" || line.status === "succeeded",
+  );
+  const weeks = (await getWeeklyPayouts(lines)).map((week) => {
+    const mine = week.tutors[0]; // only this tutor's payments were passed in
+    return { periodStart: week.periodStart, sessions: mine.sessions, earnedCents: mine.owedCents, paidOut: mine.paidOut };
+  });
+
+  const thisWeek = weeks.find((week) => week.periodStart === payoutWeekOf(now));
+  return {
+    stripeConnected: isStripeConnected(),
+    thisWeekCents: thisWeek?.earnedCents ?? 0,
+    thisWeekSessions: thisWeek?.sessions ?? 0,
+    notPaidYetCents: weeks.filter((week) => !week.paidOut).reduce((sum, week) => sum + week.earnedCents, 0),
+    weeks,
+    lines,
+  };
 }

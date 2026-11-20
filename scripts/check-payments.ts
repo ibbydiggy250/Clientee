@@ -15,7 +15,7 @@ import { accounts, enrollments, learners, payments, profiles, sessions, tutors }
 import type { SignedInUser } from "../lib/auth/current-user";
 import { cancelSession, recordOutcome } from "../lib/booking";
 import { db, orm } from "../lib/db";
-import { getWeeklyPayouts, isChargeable, isStripeConnected, listRecentPayments, payoutWeekOf, recordSessionCharge, splitSessionPrice } from "../lib/payments";
+import { getTutorEarnings, getWeeklyPayouts, isChargeable, isStripeConnected, listRecentPayments, payoutWeekOf, recordSessionCharge, splitSessionPrice } from "../lib/payments";
 import { isZoomConnected } from "../lib/zoom";
 
 let failures = 0;
@@ -122,6 +122,13 @@ async function part2WithDatabase() {
     const tutorWeek = weeks.find((week) => week.periodStart === payoutWeekOf(starts.completed))?.tutors.find((entry) => entry.tutorId === match.enrollment.tutorId);
     check("The tutor's week includes what they're owed", (tutorWeek?.owedCents ?? 0) >= expected.tutorCents);
     check("Nothing is marked as paid out without Stripe", tutorWeek?.paidOut === false);
+
+    const earnings = await getTutorEarnings(match.tutorProfileId, now);
+    const earningLines = earnings?.lines ?? [];
+    check("The tutor's Earnings tab shows both of these sessions", allIds.filter((id) => earningLines.some((line) => line.sessionId === id)).length === 2);
+    check("It only ever shows their own sessions", earningLines.every((line) => line.tutorId === match.enrollment.tutorId));
+    check("It shows their share, not the price", earningLines.find((line) => line.sessionId === completedId)?.tutorCents === expected.tutorCents);
+    check("Someone who isn't a tutor gets no earnings", (await getTutorEarnings(match.holderId, now)) === null);
 
     const [zoomCheck] = await orm.select({ url: sessions.zoomJoinUrl }).from(sessions).where(eq(sessions.id, completedId));
     check("Without Zoom, sessions keep no join link", zoomCheck.url === null);
