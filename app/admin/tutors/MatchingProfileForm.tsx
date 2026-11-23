@@ -7,26 +7,13 @@
  */
 import { useActionState } from "react";
 
-import matching from "@/components/matching/matching.module.css";
+import { CheckboxPills } from "@/components/matching/CheckboxPills";
 import paper from "@/components/paper/paper.module.css";
 import type { RosterTutor } from "@/lib/admin";
 import { LEVELS, MAIN_GOALS, TEACHING_STYLES } from "@/lib/matching-options";
 
 import { updateMatchingProfileAction, type MatchFormState } from "../../match/actions";
 import styles from "../admin.module.css";
-
-function CheckboxPills({ name, options, checked }: { name: string; options: readonly { value: string; label: string }[]; checked: string[] }) {
-  return (
-    <div className={matching.pills}>
-      {options.map((option) => (
-        <label key={option.value} className={matching.pill}>
-          <input type="checkbox" name={name} value={option.value} defaultChecked={checked.includes(option.value)} />
-          {option.label}
-        </label>
-      ))}
-    </div>
-  );
-}
 
 export function MatchingProfileForm({ tutorId, profile }: { tutorId: string; profile: RosterTutor["matching"] }) {
   const [state, formAction, isSaving] = useActionState<MatchFormState, FormData>(updateMatchingProfileAction, {});

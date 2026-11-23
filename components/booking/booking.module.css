@@ -197,3 +197,17 @@
 @media (prefers-reduced-motion: reduce) {
   .tape, .ticket[aria-pressed="true"], .confirm { animation: none; }
 }
+
+/* ---------- Jumping to a row from the week calendar ---------- */
+
+/* Leaves room above the row, and flashes it like a highlighter */
+.sessionRow { scroll-margin-top: 5rem; }
+.sessionRow:last-child { border-bottom: none; }
+.sessionRow:target { animation: highlight 1.8s ease-out; }
+@keyframes highlight {
+  0%, 30% { background: rgb(253 232 138 / 0.7); }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sessionRow:target { animation: none; background: rgb(253 232 138 / 0.5); }
+}

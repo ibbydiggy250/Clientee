@@ -3,7 +3,8 @@
  * the admin console uses: paper, a rubber stamp naming the area, and tabs.
  *
  *   Family desk: Home · Sessions · Learners · Messages
- *   Clientee:    Today · Schedule · Hours · Learners · Messages · Profile
+ *   Clientee:    Today · Schedule · Learners · Earnings · Messages · Profile
+ *                (weekly hours live on Profile since Nov 19, 2026)
  *
  * Admins who open a shared page (like Messages) get their console tabs.
  */
@@ -23,11 +24,10 @@ function tabsFor(role: Profile["role"], unread: number): DeskTab[] {
     return [
       { href: "/home", label: "Today" },
       { href: "/schedule", label: "Schedule" },
-      { href: "/availability", label: "Hours" },
       { href: "/learners", label: "Learners" },
       { href: "/earnings", label: "Earnings" },
       { href: "/messages", label: "Messages", count: unread },
-      { href: "/profile", label: "Profile" },
+      { href: "/profile", label: "Profile", alsoOn: ["/availability"] },
     ];
   }
   if (role === "admin") {

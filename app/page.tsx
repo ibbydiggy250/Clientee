@@ -34,7 +34,7 @@ export default async function HomePage() {
         </h1>
         <p className={`${styles.muted} ${styles.lede}`}>
           TutorMe matches your family with a tutor, books the sessions, handles payment, and shows you the
-          progress — not just the hours. Standard subjects from $60 an hour.
+          progress, not just the hours.
         </p>
         <div className={styles.row}>
           {user ? (

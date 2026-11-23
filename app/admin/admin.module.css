@@ -87,3 +87,95 @@
 @media (prefers-reduced-motion: reduce) {
   .stamp, .drawerBody { animation: none; }
 }
+
+/* ---------- Folder panels (shared with Clientee and the family desk) ---------- */
+
+.panel { composes: panel from "../../components/desk/desk.module.css"; }
+.panelPink { composes: panelPink from "../../components/desk/desk.module.css"; }
+.panelGreen { composes: panelGreen from "../../components/desk/desk.module.css"; }
+.panelBlue { composes: panelBlue from "../../components/desk/desk.module.css"; }
+.panelPaper { composes: panelPaper from "../../components/desk/desk.module.css"; }
+.panelTab { composes: panelTab from "../../components/desk/desk.module.css"; }
+.panelCount { composes: panelCount from "../../components/desk/desk.module.css"; }
+.panelHint { composes: panelHint from "../../components/desk/desk.module.css"; }
+.emptyNote { composes: emptyNote from "../../components/desk/desk.module.css"; }
+
+/* Sticky notes that jump to their panel */
+a.jump { cursor: pointer; }
+a.jump:focus-visible { outline: 2px dashed var(--pen); outline-offset: 4px; }
+/* Leave room above a panel when a sticky note jumps to it */
+.anchor { scroll-margin-top: 2rem; }
+
+/* ---------- Queue cards: one learner, request, tutor or message ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+/* Wider cards for things with a form inside (hand-matching, reviews) */
+.cardsWide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
+
+.card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1.5px solid rgb(27 35 64 / 0.14);
+  border-left: 4px solid var(--card-edge, rgb(27 35 64 / 0.25));
+  border-radius: 8px;
+  background: #fffefb;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -16px rgb(27 35 64 / 0.55); }
+.cardUrgent { --card-edge: var(--pen); }
+.cardWaiting { --card-edge: #f2c14e; }
+.cardDone { --card-edge: #2f7d4f; }
+
+.cardTop { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 0.75rem; }
+.cardFacts { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.fact {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgb(27 35 64 / 0.06);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.quote {
+  padding-left: 0.7rem;
+  border-left: 2px solid rgb(224 65 43 / 0.5);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.cardActions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.25rem; }
+
+/* ---------- Reviewing a tutor's profile changes: now vs. proposed ---------- */
+
+.diff {
+  display: grid;
+  grid-template-columns: minmax(6rem, max-content) 1fr 1fr;
+  gap: 0;
+  font-size: 0.9rem;
+}
+.diff > * { padding: 0.45rem 0.6rem; border-bottom: 1px dashed rgb(27 35 64 / 0.15); overflow-wrap: anywhere; }
+.diffHead { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); }
+.diffField { font-weight: 600; }
+.diffOld { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: rgb(224 65 43 / 0.6); }
+.diffNew { background: rgb(200 236 216 / 0.45); font-weight: 600; }
+@media (max-width: 560px) {
+  .diff { grid-template-columns: 1fr; }
+  .diffHead { display: none; }
+  .diffField { border-bottom: none; padding-bottom: 0; }
+}
+
+/* Buttons and links sitting straight in a card keep their own width */
+.card > a,
+.card > button { justify-self: start; }
+
+/* One card per row, for cards that need the width (profile reviews) */
+.cardsFull { grid-template-columns: 1fr; }

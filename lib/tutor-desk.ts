@@ -33,6 +33,7 @@ export async function getTutorDesk(profile: Profile, now: Date) {
     const matches = await tx
       .select({
         id: enrollments.id,
+        learnerId: enrollments.learnerId,
         subject: enrollments.subject,
         inTrial: enrollments.inTrial,
         learnerName: learners.name,

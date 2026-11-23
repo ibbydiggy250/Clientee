@@ -6,6 +6,10 @@
  *     filter exists yet; decided Nov 13, 2026).
  *   - Admin sets the matching fields: levels, school and year, learner cap,
  *     birth date, gender, teaching styles, goals they're good at.
+ *   - Since Nov 19, 2026 tutors can also edit most of those themselves
+ *     ("profile details": subjects, levels, school, styles, goals, learner
+ *     cap, languages, fun fact). Like the bio, their edits are drafts until
+ *     admin approves them. Birth date and gender stay admin-only.
  *
  * Runs as the database owner, so each function checks who is asking.
  */
@@ -16,6 +20,9 @@ import { profiles, tutors } from "@/db/schema";
 import { assertAdmin } from "@/lib/admin";
 import type { SignedInUser } from "@/lib/auth/current-user";
 import { orm } from "@/lib/db";
+import { detailsFingerprint, liveDetailsOf, normalizeDetails, pendingDetailsOf, type ProfileDetails } from "@/lib/profile-details";
+
+export { detailsSchema, type ProfileDetails } from "@/lib/profile-details";
 
 /** A problem the person can fix; its message is safe to show. */
 export class TutorProfileError extends Error {}
@@ -39,24 +46,49 @@ async function myTutorRow(user: SignedInUser) {
 
 export async function getMyPublicProfile(user: SignedInUser) {
   const tutor = await myTutorRow(user);
+  const pendingDetails = pendingDetailsOf(tutor);
   return {
     bio: tutor.bio,
     introVideoUrl: tutor.introVideoUrl,
     bioDraft: tutor.bioDraft,
     introVideoUrlDraft: tutor.introVideoUrlDraft,
-    hasPendingChanges: tutor.bioDraft !== null || tutor.introVideoUrlDraft !== null,
+    hasPendingChanges: tutor.bioDraft !== null || tutor.introVideoUrlDraft !== null || pendingDetails !== null,
     schoolYear: tutor.schoolYear,
     subjects: tutor.subjects,
     levels: tutor.levels,
+    languages: tutor.languages,
+    funFact: tutor.funFact,
+    /** What's live now, and the tutor's pending edits (null if none). */
+    details: liveDetailsOf(tutor),
+    pendingDetails,
   };
 }
 
-/** Saves the tutor's edits as drafts for admin to approve. */
+/**
+ * Saves the tutor's bio / video edits as drafts for admin to approve.
+ * If they match what's already live, there's nothing to approve, so any
+ * pending draft is cleared instead.
+ */
 export async function saveProfileDraft(user: SignedInUser, draft: z.infer<typeof draftSchema>): Promise<void> {
   const tutor = await myTutorRow(user);
+  const isUnchanged = draft.bio === (tutor.bio ?? "") && draft.introVideoUrl === (tutor.introVideoUrl ?? "");
   await orm
     .update(tutors)
-    .set({ bioDraft: draft.bio, introVideoUrlDraft: draft.introVideoUrl })
+    .set(isUnchanged ? { bioDraft: null, introVideoUrlDraft: null } : { bioDraft: draft.bio, introVideoUrlDraft: draft.introVideoUrl })
+    .where(eq(tutors.id, tutor.id));
+}
+
+// ---------------------------------------------------------------------------
+// The tutor's profile details (drafts, approved by admin)
+// ---------------------------------------------------------------------------
+
+/** Saves the tutor's detail edits for admin to approve (or clears the draft if nothing changed). */
+export async function saveDetailsDraft(user: SignedInUser, details: ProfileDetails): Promise<void> {
+  const tutor = await myTutorRow(user);
+  const isUnchanged = detailsFingerprint(details) === detailsFingerprint(liveDetailsOf(tutor));
+  await orm
+    .update(tutors)
+    .set({ profileDraft: isUnchanged ? null : normalizeDetails(details) })
     .where(eq(tutors.id, tutor.id));
 }
 
@@ -121,6 +153,41 @@ export async function approveProfileDraft(
 export async function rejectProfileDraft(actor: SignedInUser, tutorId: string): Promise<void> {
   await assertAdmin(actor);
   await orm.update(tutors).set({ bioDraft: null, introVideoUrlDraft: null }).where(eq(tutors.id, tutorId));
+}
+
+/**
+ * Publishes a tutor's pending profile details, but only if they are still
+ * exactly what admin reviewed (same idea as approveProfileDraft).
+ */
+export async function approveDetailsDraft(actor: SignedInUser, tutorId: string, reviewedFingerprint: string): Promise<void> {
+  await assertAdmin(actor);
+  const [tutor] = await orm.select().from(tutors).where(eq(tutors.id, tutorId));
+  if (!tutor) throw new TutorProfileError("That tutor no longer exists.");
+  const pending = pendingDetailsOf(tutor);
+  if (!pending) throw new TutorProfileError("There are no profile changes waiting for this tutor.");
+  if (detailsFingerprint(pending) !== reviewedFingerprint) {
+    throw new TutorProfileError("The tutor changed their profile after you opened it. Please review the new version.");
+  }
+  await orm
+    .update(tutors)
+    .set({
+      subjects: pending.subjects,
+      levels: pending.levels,
+      schoolYear: pending.schoolYear || null,
+      teachingStyles: pending.teachingStyles,
+      goalFocus: pending.goalFocus,
+      maxLearners: pending.maxLearners,
+      languages: pending.languages,
+      funFact: pending.funFact || null,
+      profileDraft: null,
+    })
+    .where(eq(tutors.id, tutorId));
+}
+
+/** Throws away a tutor's pending profile details (the live ones stay). */
+export async function rejectDetailsDraft(actor: SignedInUser, tutorId: string): Promise<void> {
+  await assertAdmin(actor);
+  await orm.update(tutors).set({ profileDraft: null }).where(eq(tutors.id, tutorId));
 }
 
 /** Everything admin needs to edit one tutor's matching profile. */

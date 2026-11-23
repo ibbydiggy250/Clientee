@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { getSignedInUser } from "@/lib/auth/current-user";
-import { addHours, AvailabilityError, newWindowSchema, removeHours } from "@/lib/availability";
+import { AvailabilityError, replaceMyHours, weekOfHoursSchema } from "@/lib/availability";
 import { BookingError, bookSessions, cancelSession, recordOutcome, rescheduleSession } from "@/lib/booking";
 
 export type SessionFormState = { error?: string; done?: boolean; message?: string };
@@ -25,7 +25,7 @@ async function attempt(task: () => Promise<SessionFormState | void>): Promise<Se
   try {
     const result = await task();
     revalidatePath("/home");
-    revalidatePath("/availability");
+    revalidatePath("/profile");
     return result ?? { done: true };
   } catch (problem) {
     if (problem instanceof BookingError || problem instanceof AvailabilityError) return { error: problem.message };
@@ -35,23 +35,21 @@ async function attempt(task: () => Promise<SessionFormState | void>): Promise<Se
 
 // ---------- Weekly hours (tutors) ----------
 
-export async function addHoursAction(_previous: SessionFormState, form: FormData): Promise<SessionFormState> {
+/** The Profile tab's hours calendar: saves the whole week at once. */
+export async function saveWeekOfHoursAction(_previous: SessionFormState, form: FormData): Promise<SessionFormState> {
   const user = await signedInUser();
-  const input = newWindowSchema.safeParse({
-    weekday: form.get("weekday"),
-    startTime: form.get("startTime"),
-    endTime: form.get("endTime"),
-  });
+  let windows: unknown = [];
+  try {
+    windows = JSON.parse(String(form.get("windows") ?? "[]"));
+  } catch {
+    return { error: "Couldn't read those hours. Please try again." };
+  }
+  const input = weekOfHoursSchema.safeParse(windows);
   if (!input.success) return { error: input.error.issues[0].message };
-  return attempt(() => addHours(user, input.data));
-}
-
-export async function removeHoursAction(form: FormData): Promise<void> {
-  const user = await signedInUser();
-  const windowId = z.uuid().safeParse(form.get("windowId"));
-  if (!windowId.success) return;
-  await removeHours(user, windowId.data);
-  revalidatePath("/availability");
+  const result = await attempt(() => replaceMyHours(user, input.data));
+  revalidatePath("/profile");
+  revalidatePath("/schedule");
+  return result;
 }
 
 // ---------- Booking (families) ----------

@@ -234,6 +234,17 @@ export const tutors = pgTable("tutors", {
   teachingStyles: text("teaching_styles").array().notNull().default([]),
   goalFocus: text("goal_focus").array().notNull().default([]),
 
+  // ----- Added Nov 19, 2026: more of the profile is the tutor's to edit -----
+  languages: text("languages").array().notNull().default([]), // shown to families
+  funFact: text("fun_fact"), // interests / a fun fact, shown to families
+  /**
+   * The tutor's pending edits to everything except bio and video (which keep
+   * their own draft columns): subjects, levels, school, styles, goals, learner
+   * cap, languages, fun fact. Null when nothing is waiting for admin.
+   * Shape: ProfileDetails in lib/tutor-profile.ts.
+   */
+  profileDraft: jsonb("profile_draft"),
+
   createdAt: createdAt(),
 });
 
@@ -378,6 +389,30 @@ export const sessionNotes = pgTable("session_notes", {
     .notNull()
     .defaultNow(),
 });
+
+/**
+ * The tutor's working notes on a learner for one subject (Clientee learner
+ * page): strengths, things to work on, and what to focus on next.
+ * Keyed by learner and subject, not by tutor, so the notes carry over when a
+ * learner changes tutors (TutorMe owns them, mvp-spec.md "Student profiles").
+ * Written only by trusted server code (lib/learner-page.ts).
+ */
+export const learnerNotes = pgTable(
+  "learner_notes",
+  {
+    id: id(),
+    learnerId: uuid("learner_id")
+      .notNull()
+      .references(() => learners.id),
+    subject: text("subject").notNull(),
+    strengths: text("strengths"),
+    weaknesses: text("weaknesses"),
+    nextFocus: text("next_focus"),
+    updatedBy: uuid("updated_by").references(() => profiles.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("learner_notes_one_per_subject").on(table.learnerId, sql`lower(${table.subject})`)],
+);
 
 export const progressEntries = pgTable(
   "progress_entries",

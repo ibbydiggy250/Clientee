@@ -1,0 +1,195 @@
+/*
+ * The learner page (Clientee learner file and the family's learner page).
+ * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
+ */
+
+/* ---------- Header: the name written big, underlined in red pen ---------- */
+
+.header { display: grid; gap: 0.4rem; }
+.back {
+  justify-self: start;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  transition: color 0.2s, transform 0.2s;
+}
+.back:hover { color: var(--pen); transform: translateX(-3px); }
+
+.name {
+  position: relative;
+  justify-self: start;
+  font-family: var(--font-display), serif;
+  font-size: clamp(2.6rem, 7vw, 4.75rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variation-settings: "SOFT" 60, "WONK" 1;
+}
+.underline {
+  position: absolute;
+  left: -2%;
+  bottom: -0.3em;
+  width: 104%;
+  height: 0.35em;
+  overflow: visible;
+}
+.underline path {
+  fill: none;
+  stroke: var(--pen);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 0.8s 0.3s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+}
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+.tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: 0.9rem; }
+
+.nextUp {
+  font-family: var(--font-hand), cursive;
+  font-size: 1.4rem;
+  color: var(--pen);
+}
+.nextUp strong { font-weight: 700; }
+
+/* ---------- About: a small fact sheet ---------- */
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.55rem 1rem;
+}
+.facts dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding-top: 0.2rem;
+}
+@media (max-width: 480px) {
+  .facts { grid-template-columns: 1fr; gap: 0.15rem; }
+  .facts dd { margin-bottom: 0.5rem; }
+}
+
+.familyQuote {
+  position: relative;
+  padding: 0.9rem 1rem 0.9rem 1.2rem;
+  border-left: 3px solid var(--pen);
+  background: rgb(253 232 138 / 0.25);
+  font-style: italic;
+  line-height: 1.5;
+}
+.familyQuote cite {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--font-hand), cursive;
+  font-size: 1.15rem;
+  font-style: normal;
+  color: var(--pen);
+}
+.goal {
+  font-family: var(--font-display), serif;
+  font-size: 1.35rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+/* ---------- The tutor's notes: three columns, each with its own ink ---------- */
+
+.notesForm {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+@media (max-width: 760px) {
+  .notesForm { grid-template-columns: 1fr; }
+}
+.noteLabel { font-family: var(--font-hand), cursive; font-size: 1.35rem; line-height: 1; }
+.noteStrengths .noteLabel { color: #2f7d4f; }
+.noteWeaknesses .noteLabel { color: var(--pen); }
+.noteFocus .noteLabel { color: #3b5bdb; }
+.notesForm textarea { min-height: 8.8rem; font-size: 1rem; }
+.notesFooter {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+/* ---------- Session timeline ---------- */
+
+.timeline {
+  display: grid;
+  gap: 0;
+  max-height: 22rem;
+  overflow-y: auto;
+  padding-left: 0.4rem;
+  list-style: none;
+}
+.timelineItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.1rem 0.75rem;
+  padding: 0.55rem 0 0.7rem 1.4rem;
+  border-left: 2px dotted rgb(27 35 64 / 0.3);
+}
+/* The dot on the line, coloured by what happened */
+.timelineItem::before {
+  content: "";
+  position: absolute;
+  left: -0.42rem;
+  top: 0.8rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--card);
+  border-radius: 50%;
+  background: var(--ink);
+}
+.dot_completed::before { background: #2f7d4f; }
+.dot_cancelled::before { background: rgb(27 35 64 / 0.3); }
+.dot_no_show::before { background: var(--pen); }
+.dot_scheduled::before { background: #f2c14e; }
+.timelineWhen { grid-column: 1 / -1; font-size: 0.78rem; color: var(--ink-soft); }
+.timelineTitle { font-weight: 600; }
+.timelineStatus { font-family: var(--font-hand), cursive; font-size: 1.15rem; color: var(--ink-soft); }
+.dot_cancelled .timelineTitle { text-decoration: line-through; text-decoration-color: var(--pen); }
+
+/* ---------- Progress: a pencil sketch of a chart, stamped "coming soon" ---------- */
+
+.sketch { position: relative; display: grid; gap: 0.6rem; }
+.sketchChart { width: 100%; max-width: 26rem; height: auto; overflow: visible; }
+.sketchAxis { fill: none; stroke: rgb(27 35 64 / 0.35); stroke-width: 2; stroke-linecap: round; }
+.sketchLine {
+  fill: none;
+  stroke: rgb(27 35 64 / 0.4);
+  stroke-width: 2.5;
+  stroke-dasharray: 0.02 0.015;
+  stroke-linecap: round;
+}
+.sketchDot { fill: var(--card); stroke: rgb(27 35 64 / 0.4); stroke-width: 2; }
+.sketchStamp {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  translate: -50% 0;
+  padding: 0.3rem 0.9rem 0.25rem;
+  border: 3px double var(--pen);
+  border-radius: 4px;
+  color: var(--pen);
+  background: rgb(255 253 248 / 0.75);
+  font-family: var(--font-display), serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  rotate: -9deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .underline path { animation: none; stroke-dashoffset: 0; }
+}

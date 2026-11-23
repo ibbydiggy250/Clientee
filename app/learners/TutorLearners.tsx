@@ -1,4 +1,9 @@
-/** Clientee → Learners: the learners admin has matched with this tutor. (Moved from the old tutor home.) */
+/**
+ * Clientee → Learners: the learners admin has matched with this tutor.
+ * Each card opens that learner's file (/learners/<id>). (Moved from the old tutor home.)
+ */
+import Link from "next/link";
+
 import desk from "@/components/desk/desk.module.css";
 import styles from "@/components/paper/paper.module.css";
 import { familyNotes, type TutorDesk } from "@/lib/tutor-desk";
@@ -18,7 +23,12 @@ export function TutorLearners({ desk: data }: { desk: TutorDesk }) {
       ) : (
         <div className={styles.cardGrid}>
           {data.matches.map((match) => (
-            <article key={match.id} className={`${styles.card} ${styles.formCard}`}>
+            <Link
+              key={match.id}
+              href={`/learners/${match.learnerId}`}
+              className={`${styles.card} ${styles.formCard} ${styles.choice}`}
+              aria-label={`Open ${match.learnerName}'s learner file (${match.subject})`}
+            >
               <span className={`${styles.stamp} ${styles.stampDone}`}>
                 {match.subject}
                 {match.inTrial && " · trial"}
@@ -29,7 +39,8 @@ export function TutorLearners({ desk: data }: { desk: TutorDesk }) {
               {familyNotes(match.preferences) && (
                 <p className={styles.muted}>Family&apos;s notes: “{familyNotes(match.preferences)}”</p>
               )}
-            </article>
+              <span className={desk.margin}>open learner file →</span>
+            </Link>
           ))}
         </div>
       )}

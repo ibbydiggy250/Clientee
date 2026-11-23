@@ -442,6 +442,7 @@ export type SessionListItem = {
   learnerName: string;
   tutorName: string;
   enrollmentId: string;
+  learnerId: string;
   /** Null until Zoom is connected (or if creating the meeting failed). */
   zoomJoinUrl: string | null;
 };
@@ -451,7 +452,22 @@ export type SessionListItem = {
  * from a little before `now` onwards. Row-level security does the filtering.
  */
 export async function listVisibleSessions(user: SignedInUser, now: Date): Promise<SessionListItem[]> {
-  const since = new Date(now.getTime() - 7 * 24 * HOUR);
+  return querySessions(user, { endsAfter: new Date(now.getTime() - 7 * 24 * HOUR) });
+}
+
+/**
+ * Sessions this user may see that overlap a time range, e.g. one week for
+ * the calendar, or all time for a learner's page. Same rules as above.
+ */
+export async function listSessionsInRange(user: SignedInUser, from: Date, to: Date): Promise<SessionListItem[]> {
+  return querySessions(user, { endsAfter: from, startsBefore: to });
+}
+
+/** The shared query behind both lists. */
+async function querySessions(user: SignedInUser, range: { endsAfter: Date; startsBefore?: Date }): Promise<SessionListItem[]> {
+  const inRange = range.startsBefore
+    ? and(gt(sessions.endsAt, range.endsAfter), lt(sessions.startsAt, range.startsBefore))
+    : gt(sessions.endsAt, range.endsAfter);
   const rows = await withUser(user.id, (tx) =>
     tx
       .select({
@@ -463,13 +479,14 @@ export async function listVisibleSessions(user: SignedInUser, now: Date): Promis
         subject: enrollments.subject,
         learnerName: learners.name,
         enrollmentId: sessions.enrollmentId,
+        learnerId: enrollments.learnerId,
         zoomJoinUrl: sessions.zoomJoinUrl,
         taughtBy: sessions.taughtBy,
       })
       .from(sessions)
       .innerJoin(enrollments, eq(enrollments.id, sessions.enrollmentId))
       .innerJoin(learners, eq(learners.id, enrollments.learnerId))
-      .where(gt(sessions.endsAt, since))
+      .where(inRange)
       .orderBy(sessions.startsAt),
   );
 

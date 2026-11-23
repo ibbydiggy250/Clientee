@@ -14,6 +14,7 @@ import type { SignedInUser } from "@/lib/auth/current-user";
 import { orm } from "@/lib/db";
 import { createInvite } from "@/lib/invites";
 import { clearUnmetSearch, closeOpenRequests, readUnmetSearch, type UnmetSearch } from "@/lib/matching";
+import { detailsFingerprint, liveDetailsOf, pendingDetailsOf, type ProfileDetails } from "@/lib/profile-details";
 
 /** A problem the admin can fix; its message is safe to show. */
 export class AdminError extends Error {}
@@ -210,7 +211,15 @@ export type RosterTutor = {
     introVideoUrl: string | null;
     bioDraft: string | null;
     introVideoUrlDraft: string | null;
+    languages: string[];
+    funFact: string | null;
   };
+  /**
+   * The tutor's own profile edits waiting for admin (subjects, levels,
+   * languages…): what's live, what they asked for, and a fingerprint so
+   * admin publishes exactly what they reviewed. Null when nothing waits.
+   */
+  pendingDetails: { live: ProfileDetails; proposed: ProfileDetails; fingerprint: string } | null;
 };
 
 export async function getRoster(actor: SignedInUser): Promise<RosterTutor[]> {
@@ -261,9 +270,18 @@ export async function getRoster(actor: SignedInUser): Promise<RosterTutor[]> {
         introVideoUrl: tutor.introVideoUrl,
         bioDraft: tutor.bioDraft,
         introVideoUrlDraft: tutor.introVideoUrlDraft,
+        languages: tutor.languages,
+        funFact: tutor.funFact,
       },
+      pendingDetails: pendingDetailsForReview(tutor),
     };
   });
+}
+
+function pendingDetailsForReview(tutor: typeof tutors.$inferSelect): RosterTutor["pendingDetails"] {
+  const proposed = pendingDetailsOf(tutor);
+  if (!proposed) return null;
+  return { live: liveDetailsOf(tutor), proposed, fingerprint: detailsFingerprint(proposed) };
 }
 
 const isoDate = z.iso.date("Use a full date");

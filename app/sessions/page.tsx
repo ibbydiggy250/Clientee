@@ -5,7 +5,10 @@ import desk from "@/components/desk/desk.module.css";
 import { PortalShell } from "@/components/desk/PortalShell";
 import styles from "@/components/paper/paper.module.css";
 import { requireProfile } from "@/lib/auth/current-user";
-import { listVisibleSessions } from "@/lib/booking";
+import type { CalendarSession } from "@/components/calendar/WeekCalendar";
+import { WeekCalendar } from "@/components/calendar/WeekCalendar";
+import { listSessionsInRange, listVisibleSessions } from "@/lib/booking";
+import { addDays, calendarWeek, easternMoment } from "@/lib/eastern-time";
 
 import { SessionList } from "./SessionList";
 
@@ -14,15 +17,29 @@ export const dynamic = "force-dynamic";
 export default async function SessionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ booked?: string; skipped?: string; moved?: string }>;
+  searchParams: Promise<{ booked?: string; skipped?: string; moved?: string; week?: string }>;
 }) {
   const { user, profile } = await requireProfile();
   if (profile.role === "tutor") redirect("/schedule");
   if (profile.role === "admin") redirect("/admin");
 
   const now = new Date();
-  const sessions = await listVisibleSessions(user, now);
-  const { booked, skipped, moved } = await searchParams;
+  const { booked, skipped, moved, week } = await searchParams;
+  const monday = calendarWeek(week, now);
+  const [sessions, weekSessions] = await Promise.all([
+    listVisibleSessions(user, now),
+    listSessionsInRange(user, easternMoment(monday, "00:00"), easternMoment(addDays(monday, 7), "00:00")),
+  ]);
+
+  const calendarSessions: CalendarSession[] = weekSessions.map((session) => ({
+    id: session.id,
+    startsAt: session.startsAt,
+    endsAt: session.endsAt,
+    status: session.status,
+    subject: session.subject,
+    who: `${session.learnerName} · ${session.tutorName}`,
+    needsAction: false, // nothing on a session waits on the family yet
+  }));
 
   return (
     <PortalShell user={user} profile={profile}>
@@ -39,6 +56,11 @@ export default async function SessionsPage({
           </p>
         )}
         {moved && <p className={styles.note}>moved ✓</p>}
+
+        <section className={`${desk.panel} ${desk.panelBlue}`} aria-labelledby="week-heading">
+          <h2 id="week-heading" className={desk.panelTab}>calendar</h2>
+          <WeekCalendar monday={monday} sessions={calendarSessions} now={now} basePath="/sessions" />
+        </section>
 
         <SessionList items={sessions} viewer="family" now={now} />
         <p className={styles.hint}>To book more, open a learner on the Learners tab.</p>

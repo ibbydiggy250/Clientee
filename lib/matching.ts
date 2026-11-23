@@ -615,6 +615,8 @@ export type TutorCard = {
   levels: string[];
   bio: string | null;
   introVideoUrl: string | null;
+  languages: string[];
+  funFact: string | null;
 };
 
 export type MatchRequestView = {
@@ -662,6 +664,8 @@ export async function getLearnerMatchPage(user: SignedInUser, learnerId: string,
       levels: tutor.levels.map(levelLabel),
       bio: tutor.bio,
       introVideoUrl: tutor.introVideoUrl,
+      languages: tutor.languages,
+      funFact: tutor.funFact,
     }));
 
   const requests: MatchRequestView[] = rows

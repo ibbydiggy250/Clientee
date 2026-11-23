@@ -45,13 +45,18 @@ export async function FamilyLearners({ user, desk: data }: { user: SignedInUser;
                 <span className={`${styles.stamp} ${styles.stampWaiting}`}>Awaiting tutor match</span>
               )}
               <h2 className={styles.choiceTitle}>
-                {learner.name}
-                {isMe && " (you)"}
+                <Link href={`/learners/${learner.id}`}>
+                  {learner.name}
+                  {isMe && " (you)"}
+                </Link>
               </h2>
               <p className={styles.muted}>
                 {[learner.grade, learner.subjects.join(", ")].filter(Boolean).join(" · ") || "No details yet"}
               </p>
               {learner.goals && <p>{learner.goals}</p>}
+              <Link className={desk.margin} href={`/learners/${learner.id}`}>
+                open {isMe ? "your" : `${learner.name.split(" ")[0]}'s`} page →
+              </Link>
 
               {/* Their tutors: one line each, booking is the main action */}
               {matches.map((match) => (

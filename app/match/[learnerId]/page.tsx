@@ -34,6 +34,8 @@ function TutorProfileCard({ card, learnerId, recommended }: { card: TutorCard; l
         {[...card.subjects, ...card.levels].map((tag) => <span key={tag} className={matching.chip}>{tag}</span>)}
       </div>
       {card.bio ? <p className={matching.bio}>{card.bio}</p> : <p className={matching.quiet}>Bio coming soon.</p>}
+      {card.languages.length > 0 && <span className={matching.quiet}>Teaches in {card.languages.join(", ")}</span>}
+      {card.funFact && <span className={matching.quiet}>Fun fact: {card.funFact}</span>}
       {card.introVideoUrl && (
         <a className={paper.link} href={card.introVideoUrl} target="_blank" rel="noreferrer noopener">
           Watch their intro video ↗

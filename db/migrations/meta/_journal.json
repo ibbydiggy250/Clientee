@@ -85,6 +85,20 @@
       "when": 1795068948457,
       "tag": "0011_messaging_access",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795138422409,
+      "tag": "0012_profile_and_learner_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795138438756,
+      "tag": "0013_profile_and_learner_notes_access",
+      "breakpoints": true
     }
   ]
 }

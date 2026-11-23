@@ -345,3 +345,120 @@ a.sticky:focus-visible { outline: 2px dashed var(--pen); outline-offset: 4px; }
   .stamp, .ticket { animation: none; }
   .tapedNote { rotate: none; }
 }
+
+/* ---------- Folder panels: one compartment of a page ---------- */
+
+/*
+ * A manila-folder card with a coloured index tab on top, so a busy page
+ * reads as a few separate compartments ("Needs you", "Coming up"…).
+ * Pick the tab colour with one of the panelX classes below.
+ *
+ *   <section class="panel panelPink">
+ *     <h2 class="panelTab">needs you <span class="panelCount">2</span></h2>
+ *     …content…
+ *   </section>
+ */
+.panel {
+  --panel-accent: #fde88a;
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-width: 0;
+  margin-top: 1.6rem;
+  padding: 1.4rem clamp(1rem, 3vw, 1.75rem) 1.5rem;
+  border: 1.5px solid rgb(27 35 64 / 0.16);
+  border-radius: 0 12px 12px 12px;
+  background: var(--card);
+  box-shadow: 5px 5px 0 rgb(27 35 64 / 0.07), 0 20px 34px -26px rgb(27 35 64 / 0.55);
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.panelPink { --panel-accent: #ffc9b8; }
+.panelGreen { --panel-accent: #c8ecd8; }
+.panelBlue { --panel-accent: #cfdcff; }
+.panelPaper { --panel-accent: #efe6d2; }
+
+/* The index tab sticking up from the folder's top-left corner */
+.panelTab {
+  position: absolute;
+  bottom: calc(100% - 1.5px);
+  left: -1.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100% + 3px);
+  padding: 0.3rem 1.1rem 0.2rem;
+  border: 1.5px solid rgb(27 35 64 / 0.16);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: var(--panel-accent);
+  font-family: var(--font-hand), cursive;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+/* A count on the tab, circled like the tab counts */
+.panelCount {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+/* A one-line explanation under the tab, and an action on the right */
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+.panelHint { font-size: 0.9rem; color: var(--ink-soft); }
+
+/* Panels side by side on wide screens, stacked on narrow ones */
+.panelGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* A small stat inside a panel: big number, handwritten label */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.75rem;
+}
+.stat {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1.5px dashed rgb(27 35 64 / 0.22);
+  border-radius: 8px;
+}
+.statNumber {
+  font-family: var(--font-display), serif;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.statLabel { font-family: var(--font-hand), cursive; font-size: 1.2rem; line-height: 1.1; color: var(--ink-soft); }
+
+/* An empty compartment: a pencilled line instead of a blank box */
+.emptyNote { font-family: var(--font-hand), cursive; font-size: 1.3rem; color: var(--ink-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+}
+
+/* Buttons and links sitting straight in a panel keep their own width */
+.panel > a,
+.panel > button { justify-self: start; }

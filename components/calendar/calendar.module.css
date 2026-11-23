@@ -1,0 +1,300 @@
+/*
+ * Notebook calendars, in the Margin Notes look:
+ *   - HoursCalendar: the tutor picks weekly hours by clicking half-hour boxes;
+ *     picked boxes become a strip of washi tape.
+ *   - WeekCalendar: one week of sessions, each pinned to its day like a note.
+ * Colour variables (--ink, --pen, --paper, --card…) come from paper.module.css.
+ */
+
+/* Wide grids scroll sideways inside their card on phones, never the page */
+.scroller {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+/* ---------- HoursCalendar ---------- */
+
+.hoursForm { display: grid; gap: 1.25rem; }
+
+.hoursGrid {
+  display: grid;
+  grid-template-columns: 3.4rem repeat(7, minmax(2.6rem, 1fr));
+  min-width: 26rem;
+  user-select: none;
+}
+/* Rows only group cells for screen readers; the grid itself lays them out */
+.hoursRow { display: contents; }
+
+.dayHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.2rem 0 0.45rem;
+  background: var(--card);
+  font-family: var(--font-hand), cursive;
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--pen);
+  text-align: center;
+}
+
+.timeLabel {
+  /* Sits on the line where its hour starts */
+  translate: 0 -0.55em;
+  padding-right: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* One half-hour box. Two make an hour, matching the paper's 2.2rem rules. */
+.box {
+  position: relative;
+  height: 1.1rem;
+  margin: 0 2px;
+  border-top: 1px solid rgb(27 35 64 / 0.12);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.boxHalf { border-top-style: dotted; border-top-color: rgb(27 35 64 / 0.07); }
+.box:hover { background: rgb(224 65 43 / 0.08); }
+.box:focus-visible { outline: 2px dashed var(--pen); outline-offset: -2px; z-index: 2; }
+
+/* A picked box: washi tape, with torn ends where a block starts and stops */
+.box[aria-pressed="true"] {
+  border-top-color: transparent;
+  background: repeating-linear-gradient(-45deg, rgb(240 214 140 / 0.95) 0 8px, rgb(246 226 160 / 0.95) 8px 16px);
+  animation: stickOn 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.box[aria-pressed="true"]:hover { filter: brightness(0.97); }
+.blockStart { clip-path: polygon(0 18%, 30% 0, 62% 14%, 100% 2%, 100% 100%, 0 100%); }
+.blockEnd { clip-path: polygon(0 0, 100% 0, 100% 86%, 70% 100%, 38% 88%, 0 98%); }
+.blockStart.blockEnd { clip-path: polygon(0 14%, 40% 0, 100% 10%, 100% 88%, 60% 100%, 0 90%); }
+@keyframes stickOn {
+  from { transform: scaleX(0.6); opacity: 0.4; }
+}
+
+/* "3–6pm" written on the first box of each block */
+.blockLabel {
+  position: absolute;
+  inset: 0.15rem 0 auto 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hoursFooter { display: grid; gap: 0.75rem; }
+.unsaved {
+  font-family: var(--font-hand), cursive;
+  font-size: 1.3rem;
+  color: var(--pen);
+  rotate: -1deg;
+  justify-self: start;
+}
+
+/* ---------- WeekCalendar ---------- */
+
+.week { display: grid; gap: 1rem; }
+
+.weekNav { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 0.9rem; }
+.weekLabel {
+  min-width: 9rem;
+  font-family: var(--font-display), serif;
+  font-size: 1.4rem;
+  font-weight: 500;
+  text-align: center;
+}
+.navButton {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  font-weight: 700;
+  transition: background 0.2s, transform 0.15s;
+}
+.navButton:hover { background: var(--ink); color: var(--paper); }
+.navButton:active { transform: scale(0.92); }
+.navButton:focus-visible { outline: 2px dashed var(--pen); outline-offset: 3px; }
+.todayLink {
+  font-family: var(--font-hand), cursive;
+  font-size: 1.25rem;
+  color: var(--pen);
+}
+.todayLink:hover { text-decoration: underline; }
+
+.weekGrid {
+  --hour: 4.4rem;
+  display: grid;
+  grid-template-columns: 3rem repeat(7, minmax(5.5rem, 1fr));
+  grid-template-rows: auto calc(var(--hours) * var(--hour));
+  min-width: 44rem;
+}
+
+.weekDayHead {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--ink);
+}
+.weekDayName { font-family: var(--font-hand), cursive; font-size: 1.3rem; line-height: 1; color: var(--pen); }
+.weekDayNumber {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  font-family: var(--font-display), serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+/* Today's date gets circled in red pen */
+.isToday .weekDayNumber {
+  border: 2px solid var(--pen);
+  border-radius: 52% 46% 55% 44%;
+  color: var(--pen);
+  rotate: -6deg;
+}
+
+.hourColumn { display: grid; grid-auto-rows: var(--hour); }
+.hourLabel {
+  padding-right: 0.5rem;
+  translate: 0 -0.5em;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.hourLabel:first-child { translate: none; }
+
+.dayColumn {
+  position: relative;
+  border-left: 1px solid rgb(27 35 64 / 0.1);
+  /* one ruled line per hour, a fainter one at each half hour */
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(27 35 64 / 0.11) 0 1px,
+    transparent 1px calc(var(--hour) / 2),
+    rgb(27 35 64 / 0.05) calc(var(--hour) / 2) calc(var(--hour) / 2 + 1px),
+    transparent calc(var(--hour) / 2 + 1px) var(--hour)
+  );
+}
+.todayColumn { background-color: rgb(253 232 138 / 0.16); }
+
+/* The tutor's open hours: a highlighter stripe behind the sessions */
+.openHours {
+  position: absolute;
+  left: 0.2rem;
+  right: 0.2rem;
+  border-radius: 3px;
+  background: repeating-linear-gradient(-45deg, rgb(200 236 216 / 0.55) 0 7px, rgb(200 236 216 / 0.3) 7px 14px);
+}
+
+/* Where "now" is, drawn as a red pen line with a dot */
+.nowLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 2px;
+  background: var(--pen);
+  pointer-events: none;
+}
+.nowLine::before {
+  content: "";
+  position: absolute;
+  left: -0.3rem;
+  top: -0.25rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--pen);
+}
+
+/* A session, pinned to its day like a note */
+.pinned {
+  position: absolute;
+  left: 0.3rem;
+  right: 0.3rem;
+  z-index: 1;
+  display: grid;
+  align-content: start;
+  gap: 0.05rem;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.45rem 0.35rem;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #fde88a;
+  box-shadow: 0 6px 12px -8px rgb(27 35 64 / 0.6);
+  line-height: 1.15;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s;
+  animation: pinIn 0.4s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+.pinned:hover { z-index: 3; transform: translateY(-2px) scale(1.04); rotate: 0deg !important; box-shadow: 0 12px 18px -10px rgb(27 35 64 / 0.6); }
+.pinned:focus-visible { outline: 2px dashed var(--pen); outline-offset: 2px; z-index: 3; }
+@keyframes pinIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+}
+.pinned_completed { background: #c8ecd8; }
+.pinned_cancelled { background: #efe6d2; opacity: 0.6; }
+.pinned_cancelled .pinnedTitle { text-decoration: line-through; text-decoration-color: var(--pen); }
+.pinned_no_show { background: #e6e2da; opacity: 0.75; }
+/* Waiting on the viewer: pink, outlined in pen */
+.needsAction { background: #ffc9b8; box-shadow: 0 0 0 2px var(--pen), 0 6px 12px -8px rgb(27 35 64 / 0.6); }
+
+.pinnedTitle { font-family: var(--font-display), serif; font-size: 0.92rem; font-weight: 600; }
+.pinnedMeta { font-size: 0.7rem; color: rgb(27 35 64 / 0.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The push pin at the top of a note */
+.pin {
+  position: absolute;
+  top: 0.15rem;
+  left: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a75, var(--pen) 60%, #9b2414);
+  box-shadow: 0 1px 1px rgb(27 35 64 / 0.4);
+}
+
+/* The notification ping: a red dot with a ring that keeps pulsing outward */
+.ping {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--pen);
+}
+.ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--pen);
+  animation: ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ping {
+  75%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; font-size: 0.82rem; color: var(--ink-soft); }
+.legend > span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.legendSwatch { width: 0.9rem; height: 0.9rem; border-radius: 3px; }
+.legendSession { background: #fde88a; }
+.legendAction { background: #ffc9b8; box-shadow: 0 0 0 2px var(--pen); }
+.legendHours { background: repeating-linear-gradient(-45deg, rgb(200 236 216 / 0.9) 0 4px, rgb(200 236 216 / 0.5) 4px 8px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .box[aria-pressed="true"], .pinned { animation: none; }
+  .ping::after { animation: none; }
+}

@@ -60,6 +60,20 @@ export function addDays(isoDate: string, days: number): string {
   return noon.toISOString().slice(0, 10);
 }
 
+/** The Monday on or before an ISO date (calendars start the week on Monday). */
+export function mondayOf(isoDate: string): string {
+  return addDays(isoDate, -((weekdayOf(isoDate) + 6) % 7));
+}
+
+/**
+ * The Monday of the week a calendar should show: from a `?week=YYYY-MM-DD`
+ * link if it's a real date, otherwise this week (Eastern).
+ */
+export function calendarWeek(weekParam: string | undefined, now: Date): string {
+  const isRealDate = Boolean(weekParam && /^\d{4}-\d{2}-\d{2}$/.test(weekParam) && !Number.isNaN(Date.parse(`${weekParam}T12:00:00Z`)));
+  return mondayOf(isRealDate ? weekParam! : easternDate(now));
+}
+
 /** "Thu, Nov 20 · 3:00 PM" in Eastern time. */
 export function formatSessionTime(at: Date): string {
   const day = new Intl.DateTimeFormat("en-US", { timeZone: EASTERN, weekday: "short", month: "short", day: "numeric" }).format(at);

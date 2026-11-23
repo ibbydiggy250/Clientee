@@ -38,7 +38,7 @@ export async function TutorHome({ profile }: { profile: Profile }) {
   const next = upcoming[0];
 
   const setupTodos: TodoItem[] = [
-    ...(!data.hasHours ? [{ key: "hours", title: "Set your weekly hours", detail: "Families can only book inside them.", href: "/availability", action: "Set hours" }] : []),
+    ...(!data.hasHours ? [{ key: "hours", title: "Set your weekly hours", detail: "Families can only book inside them.", href: "/profile#hours", action: "Set hours" }] : []),
     ...(!data.tutor?.bio ? [{ key: "bio", title: "Write your public bio", detail: "It's what families read on your card.", href: "/profile", action: "Write it" }] : []),
   ];
 

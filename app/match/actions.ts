@@ -24,10 +24,14 @@ import {
   searchSchema,
 } from "@/lib/matching";
 import {
+  approveDetailsDraft,
   approveProfileDraft,
+  detailsSchema,
   draftSchema,
   matchingProfileSchema,
+  rejectDetailsDraft,
   rejectProfileDraft,
+  saveDetailsDraft,
   saveProfileDraft,
   TutorProfileError,
   updateMatchingProfile,
@@ -132,11 +136,40 @@ export async function respondAction(_previous: MatchFormState, form: FormData): 
   });
 }
 
+/** "Algebra, chemistry ,, Algebra" → ["Algebra", "chemistry"] (no blanks, no repeats). */
+function splitList(value: FormDataEntryValue | null): string[] {
+  const items: string[] = [];
+  for (const piece of String(value ?? "").split(",")) {
+    const item = piece.trim();
+    const isRepeat = items.some((kept) => kept.toLowerCase() === item.toLowerCase());
+    if (item && !isRepeat) items.push(item);
+  }
+  return items;
+}
+
+/**
+ * The tutor's profile form: bio and video (one draft), and the rest of the
+ * profile (another draft). Both wait for admin approval.
+ */
 export async function saveProfileDraftAction(_previous: MatchFormState, form: FormData): Promise<MatchFormState> {
   const user = await signedInUser();
   const input = draftSchema.safeParse({ bio: form.get("bio") ?? "", introVideoUrl: form.get("introVideoUrl") ?? "" });
   if (!input.success) return { error: input.error.issues[0].message };
-  return attempt(() => saveProfileDraft(user, input.data), "/profile", "/admin/tutors");
+  const details = detailsSchema.safeParse({
+    subjects: splitList(form.get("subjects")),
+    levels: form.getAll("levels"),
+    schoolYear: form.get("schoolYear") ?? "",
+    teachingStyles: form.getAll("teachingStyles"),
+    goalFocus: form.getAll("goalFocus"),
+    maxLearners: form.get("maxLearners"),
+    languages: splitList(form.get("languages")),
+    funFact: form.get("funFact") ?? "",
+  });
+  if (!details.success) return { error: details.error.issues[0].message };
+  return attempt(async () => {
+    await saveProfileDraft(user, input.data);
+    await saveDetailsDraft(user, details.data);
+  }, "/profile", "/admin/tutors");
 }
 
 // ---------- Admin ----------
@@ -186,6 +219,23 @@ export async function profileDraftDecisionAction(form: FormData): Promise<void> 
     }
   } else {
     await rejectProfileDraft(user, tutorId);
+  }
+  revalidatePath("/admin/tutors");
+}
+
+/** Admin publishes or sends back a tutor's pending profile details (subjects, levels, languages…). */
+export async function detailsDraftDecisionAction(form: FormData): Promise<void> {
+  const user = await signedInUser();
+  const tutorId = z.uuid().parse(form.get("tutorId"));
+  if (form.get("decision") === "approve") {
+    // Like the bio: publish only the exact version admin read.
+    try {
+      await approveDetailsDraft(user, tutorId, String(form.get("reviewedDetails") ?? ""));
+    } catch (problem) {
+      if (!(problem instanceof TutorProfileError)) throw problem;
+    }
+  } else {
+    await rejectDetailsDraft(user, tutorId);
   }
   revalidatePath("/admin/tutors");
 }

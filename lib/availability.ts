@@ -7,7 +7,7 @@
  * Times are Eastern clock times. Removing hours never cancels sessions that
  * are already booked.
  */
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { availability, tutors } from "@/db/schema";
@@ -45,27 +45,28 @@ export async function getMyHours(user: SignedInUser): Promise<HoursWindow[]> {
   });
 }
 
-export async function addHours(user: SignedInUser, window: z.infer<typeof newWindowSchema>): Promise<void> {
+/** A whole week of hours from the calendar editor on the Profile tab. */
+export const weekOfHoursSchema = z.array(newWindowSchema).max(100, "That's too many separate blocks of hours.");
+
+/**
+ * Replaces all of the tutor's weekly hours in one go (the Profile calendar
+ * saves the whole week at once). Runs in one transaction, so a refused
+ * window leaves the old hours untouched. Booked sessions are never cancelled.
+ */
+export async function replaceMyHours(user: SignedInUser, windows: z.infer<typeof weekOfHoursSchema>): Promise<void> {
   try {
     await withUser(user.id, async (tx) => {
       const tutorId = await myTutorId(tx, user.id);
       if (!tutorId) throw new AvailabilityError("Only tutors can set weekly hours.");
-      await tx.insert(availability).values({ tutorId, ...window });
+      await tx.delete(availability).where(eq(availability.tutorId, tutorId));
+      if (windows.length > 0) await tx.insert(availability).values(windows.map((window) => ({ tutorId, ...window })));
     });
   } catch (problem) {
     if (problem instanceof AvailabilityError) throw problem;
-    if (hasPostgresCode(problem, "23P01")) throw new AvailabilityError("That overlaps hours you already have on that day.");
-    if (hasPostgresCode(problem, "23514")) throw new AvailabilityError("The end time has to be after the start time.");
+    if (hasPostgresCode(problem, "23P01")) throw new AvailabilityError("Two of those blocks overlap on the same day.");
+    if (hasPostgresCode(problem, "23514")) throw new AvailabilityError("Each block has to end after it starts.");
     // 42501: row-level security refused it (e.g. the contract has ended).
     if (hasPostgresCode(problem, "42501")) throw new AvailabilityError("Your hours can only be changed while your contract is active.");
     throw problem;
   }
-}
-
-export async function removeHours(user: SignedInUser, windowId: string): Promise<void> {
-  await withUser(user.id, async (tx) => {
-    const tutorId = await myTutorId(tx, user.id);
-    if (!tutorId) throw new AvailabilityError("Only tutors can change weekly hours.");
-    await tx.delete(availability).where(and(eq(availability.id, windowId), eq(availability.tutorId, tutorId)));
-  });
 }

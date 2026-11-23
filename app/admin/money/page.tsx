@@ -7,6 +7,7 @@
  *   3. Weekly payouts: what each tutor is owed, week by week.
  *   4. Recent charges, one line per charged session.
  * The numbers come from lib/payments.ts.
+ * Payouts and charges each sit in their own folder panel (Nov 19, 2026 clean-up).
  */
 import desk from "@/components/desk/desk.module.css";
 import paper from "@/components/paper/paper.module.css";
@@ -90,10 +91,11 @@ export default async function AdminMoneyPage() {
         </div>
       </div>
 
-      <section className={paper.fields} aria-labelledby="payouts-heading">
-        <h2 id="payouts-heading" className={paper.heading}>Weekly payouts</h2>
+      <section className={`${styles.panel} ${styles.panelGreen}`} aria-labelledby="payouts-heading">
+        <h2 id="payouts-heading" className={styles.panelTab}>weekly payouts</h2>
+        <p className={styles.panelHint}>What each tutor is owed for their share, week by week.</p>
         {weeks.length === 0 ? (
-          <p className={paper.muted}>Nothing owed yet. Sessions show up here once a tutor marks them done.</p>
+          <p className={styles.emptyNote}>Nothing owed yet. Sessions show up here once a tutor marks them done.</p>
         ) : (
           weeks.map((week) => (
             <div key={week.periodStart} className={money.week}>
@@ -126,10 +128,12 @@ export default async function AdminMoneyPage() {
         )}
       </section>
 
-      <section className={paper.fields} aria-labelledby="charges-heading">
-        <h2 id="charges-heading" className={paper.heading}>Recent charges</h2>
+      <section className={`${styles.panel} ${styles.panelBlue}`} aria-labelledby="charges-heading">
+        <h2 id="charges-heading" className={styles.panelTab}>
+          recent charges {lines.length > 0 && <span className={styles.panelCount}>{lines.length}</span>}
+        </h2>
         {lines.length === 0 ? (
-          <p className={paper.muted}>No charges yet.</p>
+          <p className={styles.emptyNote}>No charges yet.</p>
         ) : (
           <div className={styles.ledger} style={{ "--columns": "1.6fr 1.1fr 0.9fr 1.1fr 0.7fr" } as React.CSSProperties}>
             <div className={styles.ledgerHead}>

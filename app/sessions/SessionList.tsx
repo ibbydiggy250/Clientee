@@ -7,6 +7,7 @@
 import Link from "next/link";
 
 import booking from "@/components/booking/booking.module.css";
+import desk from "@/components/desk/desk.module.css";
 import paper from "@/components/paper/paper.module.css";
 import { isWithinLateWindow, type SessionListItem } from "@/lib/booking";
 import { EASTERN, formatSessionTime } from "@/lib/eastern-time";
@@ -41,7 +42,8 @@ function SessionRow({ item, viewer, now }: { item: SessionListItem; viewer: View
   const who = viewer === "tutor" ? item.learnerName : `${item.learnerName} with ${item.tutorName}`;
 
   return (
-    <div className={booking.sessionRow}>
+    // The id lets a note on the week calendar jump to this row.
+    <div id={`session-${item.id}`} className={booking.sessionRow}>
       <CalendarPage at={item.startsAt} />
       <div className={paper.field}>
         <span className={`${paper.heading} ${item.status === "cancelled" ? booking.struck : ""}`}>{item.subject}</span>
@@ -82,28 +84,38 @@ export function SessionList({ items, viewer, now }: { items: SessionListItem[]; 
   const upcoming = items.filter((item) => item.status === "scheduled" && item.endsAt > now);
   const history = items.filter((item) => item.status !== "scheduled").reverse();
 
+  // Each group is its own folder panel, so the page reads as compartments.
   return (
     <div className={paper.fields}>
       {viewer === "tutor" && toRecord.length > 0 && (
-        <section className={paper.fields} aria-labelledby="to-record-heading">
-          <h3 id="to-record-heading" className={paper.note}>how did these go? ↓</h3>
-          {toRecord.map((item) => <SessionRow key={item.id} item={item} viewer={viewer} now={now} />)}
+        <section className={`${desk.panel} ${desk.panelPink}`} aria-labelledby="to-record-heading">
+          <h2 id="to-record-heading" className={desk.panelTab}>
+            needs you <span className={desk.panelCount}>{toRecord.length}</span>
+          </h2>
+          <p className={desk.panelHint}>How did these go? Recording it pays you and charges the family.</p>
+          <div>{toRecord.map((item) => <SessionRow key={item.id} item={item} viewer={viewer} now={now} />)}</div>
         </section>
       )}
 
-      {upcoming.length === 0 ? (
-        <p className={paper.muted}>Nothing booked yet.</p>
-      ) : (
-        <section aria-label="Upcoming sessions">
-          {upcoming.map((item) => <SessionRow key={item.id} item={item} viewer={viewer} now={now} />)}
-        </section>
-      )}
+      <section className={desk.panel} aria-labelledby="upcoming-heading">
+        <h2 id="upcoming-heading" className={desk.panelTab}>
+          coming up {upcoming.length > 0 && <span className={desk.panelCount}>{upcoming.length}</span>}
+        </h2>
+        {upcoming.length === 0 ? (
+          <p className={desk.emptyNote}>Nothing booked yet.</p>
+        ) : (
+          <div>{upcoming.map((item) => <SessionRow key={item.id} item={item} viewer={viewer} now={now} />)}</div>
+        )}
+      </section>
 
       {history.length > 0 && (
-        <details>
-          <summary className={paper.link}>Cancelled &amp; past ({history.length})</summary>
-          {history.map((item) => <SessionRow key={item.id} item={item} viewer={viewer} now={now} />)}
-        </details>
+        <section className={`${desk.panel} ${desk.panelPaper}`} aria-labelledby="history-heading">
+          <h2 id="history-heading" className={desk.panelTab}>past &amp; cancelled</h2>
+          <details>
+            <summary className={paper.link}>Show the last week ({history.length})</summary>
+            {history.map((item) => <SessionRow key={item.id} item={item} viewer={viewer} now={now} />)}
+          </details>
+        </section>
       )}
     </div>
   );
